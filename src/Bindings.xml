@@ -1,0 +1,5 @@
+<Bindings>
+  <Binding name="GROUPHIGHLIGHT_TOGGLE" header="GROUPHIGHLIGHT" category="ADDONS">
+    GroupHighlight.ToggleEnabled()
+  </Binding>
+</Bindings>
