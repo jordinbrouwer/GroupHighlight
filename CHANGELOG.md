@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.0.0...main)
 
+### Added
+- `shell` (ShellCheck) and `smoke` checks. The `toc` check now also catches Lua files missing from the `.toc` and duplicate entries.
+
+### Changed
+- CI runs every check as its own job, picked up automatically from `scripts/check/`.
+- Tag releases run all checks before packaging and publishing.
+
 ## [1.0.0 (2026-11-11)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.0.0)
 
 ### Added
