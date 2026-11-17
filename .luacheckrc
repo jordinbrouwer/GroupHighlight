@@ -6,7 +6,7 @@ globals = { "BINDING_HEADER_GROUPHIGHLIGHT", "BINDING_NAME_GROUPHIGHLIGHT_TOGGLE
 
 read_globals = {
   "C_AddOns", "C_CVar", "C_NamePlate", "C_Timer", "CreateColor", "IsMouseButtonDown", "LOCALIZED_CLASS_NAMES_MALE", "_G", "CreateFrame", "GameTooltip",
-  "GameTooltip_Hide", "GetAddOnMetadata", "GetCameraZoom", "GetCursorPosition", "GetLocale", "GetUnitName",
+  "GameTooltip_Hide", "GetCameraZoom", "GetCursorPosition", "GetLocale", "GetUnitName",
   "HideUIPanel", "InCombatLockdown", "issecretvalue", "RAID_CLASS_COLORS", "Settings", "SettingsPanel", "UIParent",
   "UISpecialFrames", "UnitClass", "UnitExists", "UnitInParty", "UnitInRaid", "UnitIsPlayer", "UnitIsUnit",
   "UnitName", "tinsert", "tremove", "unpack",

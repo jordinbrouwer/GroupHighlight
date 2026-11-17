@@ -427,11 +427,6 @@ local function BuildTitleBar()
   local title = bar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
   title:SetPoint("LEFT", icon, "RIGHT", 8, 0)
   title:SetText("GroupHighlight")
-  local version = bar:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-  version:SetPoint("LEFT", title, "RIGHT", 8, -1)
-  local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
-  local text = getMeta and getMeta(GroupHighlight.AddonName or "GroupHighlight", "Version") or ""
-  version:SetText(text:find("@", 1, true) and "" or text)
 
   local close = CreateFrame("Button", nil, bar)
   close:SetSize(28, 28)
