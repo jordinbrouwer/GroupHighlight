@@ -1,7 +1,7 @@
 ## Interface: 120100, 120005, 120007, 16001
 
 ## Title: GroupHighlight
-## Notes: Lightweight arrow above party and raid members.
+## Notes: Put an arrow above your party and raid members, so you can find them in a crowd. One arrow per player, in their class colour or a colour you pick.
 ## IconTexture: Interface\AddOns\GroupHighlight\GroupHighlight
 ## Version: @project-version@
 ## Author: Jordin
