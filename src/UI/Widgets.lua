@@ -19,20 +19,86 @@ UI.THEME = {
 }
 local THEME = UI.THEME
 
+-- GroupHighlight's own fonts: Expressway (in Media), with the size, colour and shadow of the
+-- game font each one replaces. Use them by name, e.g. CreateFontString(nil, "OVERLAY",
+-- "GroupHighlightFontHighlight") instead of the game's GameFontHighlight.
+UI.FONT = "Interface\\AddOns\\GroupHighlight\\Media\\Expressway.ttf"
+for _, suffix in ipairs({ "Normal", "Highlight", "NormalSmall", "HighlightSmall", "NormalLarge", "NormalHuge", "Disable" }) do
+  local template = _G["GameFont" .. suffix]
+  if template then
+    local font = CreateFont("GroupHighlightFont" .. suffix)
+    font:CopyFontObject(template)
+    local _, size, flags = template:GetFont()
+    if not font:SetFont(UI.FONT, size or 12, flags or "") then
+      font:CopyFontObject(template) -- the file is missing: keep the game font
+    end
+  end
+end
+
+-- Makes a line exactly one screen pixel thick, whatever the UI scale. A plain height or
+-- width of 1 can render as 0, 1 or 2 pixels, so lines looked uneven and corners didn't meet.
+function UI.OnePixel(line, horizontal)
+  line:SetTexelSnappingBias(0)
+  line:SetSnapToPixelGrid(false)
+  if PixelUtil then
+    if horizontal then PixelUtil.SetHeight(line, 1, 1) else PixelUtil.SetWidth(line, 1, 1) end
+  else
+    if horizontal then line:SetHeight(1) else line:SetWidth(1) end
+  end
+end
+
 function UI.AddBorder(frame, color)
-  local function Edge(p1, p2, x1, y1, x2, y2)
+  local function Edge(p1, p2, horizontal)
     local line = frame:CreateTexture(nil, "BORDER")
     line:SetColorTexture(unpack(color))
-    line:SetPoint(p1, frame, p1, x1, y1)
-    line:SetPoint(p2, frame, p2, x2, y2)
+    line:SetPoint(p1, frame, p1, 0, 0)
+    line:SetPoint(p2, frame, p2, 0, 0)
+    UI.OnePixel(line, horizontal)
     return line
   end
   return {
-    Edge("TOPLEFT", "TOPRIGHT", 0, 0, 0, -1),
-    Edge("BOTTOMLEFT", "BOTTOMRIGHT", 0, 1, 0, 0),
-    Edge("TOPLEFT", "BOTTOMLEFT", 0, 0, 1, 0),
-    Edge("TOPRIGHT", "BOTTOMRIGHT", -1, 0, 0, 0),
+    Edge("TOPLEFT", "TOPRIGHT", true),
+    Edge("BOTTOMLEFT", "BOTTOMRIGHT", true),
+    Edge("TOPLEFT", "BOTTOMLEFT", false),
+    Edge("TOPRIGHT", "BOTTOMRIGHT", false),
   }
+end
+
+-- A flat check box of our own (not Blizzard's): a dark square with a border and a gold
+-- tick drawn from two bars. Works like a CheckButton: SetChecked, GetChecked, Click.
+function UI.CreateCheckbox(parent, onClick)
+  local box = CreateFrame("Button", nil, parent)
+  box:SetSize(16, 16)
+  box.Back = box:CreateTexture(nil, "BACKGROUND")
+  box.Back:SetAllPoints(box)
+  box.Back:SetColorTexture(unpack(THEME.INSET))
+  box.Border = UI.AddBorder(box, THEME.BORDER)
+  -- The tick: a short bar down-right and a long bar up-right, meeting at the bottom.
+  box.Short = box:CreateTexture(nil, "ARTWORK")
+  box.Short:SetColorTexture(unpack(THEME.GOLD))
+  box.Short:SetSize(5, 2)
+  box.Short:SetPoint("CENTER", box, "CENTER", -3, -1)
+  box.Short:SetRotation(math.rad(-45))
+  box.Long = box:CreateTexture(nil, "ARTWORK")
+  box.Long:SetColorTexture(unpack(THEME.GOLD))
+  box.Long:SetSize(10, 2)
+  box.Long:SetPoint("CENTER", box, "CENTER", 1.5, 0.5)
+  box.Long:SetRotation(math.rad(45))
+  function box:SetChecked(on)
+    self.checked = on and true or false
+    self.Short:SetShown(self.checked)
+    self.Long:SetShown(self.checked)
+    UI.SetBorderColor(self.Border, (self.checked or self.hover) and THEME.GOLD or THEME.BORDER)
+  end
+  function box:GetChecked() return self.checked end
+  box:SetScript("OnEnter", function(self) self.hover = true self:SetChecked(self.checked) end)
+  box:SetScript("OnLeave", function(self) self.hover = false self:SetChecked(self.checked) end)
+  box:SetScript("OnClick", function(self)
+    self:SetChecked(not self.checked)
+    if onClick then onClick(self) end
+  end)
+  box:SetChecked(false)
+  return box
 end
 
 function UI.SetBorderColor(lines, color)
@@ -58,7 +124,7 @@ function UI.CreateButton(parent, text, width, primary, onClick, tooltipText)
   button.Background = button:CreateTexture(nil, "BACKGROUND")
   button.Background:SetAllPoints(button)
   button.Border = UI.AddBorder(button, primary and THEME.GOLD or THEME.BORDER)
-  button.Label = button:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  button.Label = button:CreateFontString(nil, "OVERLAY", "GroupHighlightFontHighlight")
   button.Label:SetPoint("CENTER", button, "CENTER", 0, 0)
   button.Label:SetText(text)
   local function Rest()

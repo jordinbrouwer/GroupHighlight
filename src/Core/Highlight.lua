@@ -1,5 +1,4 @@
 GroupHighlight = GroupHighlight or {}
-local L = GroupHighlight.Loc
 
 local TEXTURE_PATH = "Interface\\AddOns\\GroupHighlight\\Media\\"
 local TEXTURES = {
@@ -187,63 +186,28 @@ local function UpdateSelfArrow()
   ApplyTexture(selfArrow)
   selfArrow:SetSize(size, size)
   selfArrow:ClearAllPoints()
-  selfArrow:SetPoint("BOTTOM", UIParent, "CENTER", options.SelfX or 0,
-    SELF_BASE_HEIGHT / math.max(zoom, 2) / 2 + GroupHighlight.GetLiftOffset() - 20 + (options.SelfY or 0))
+  selfArrow:SetPoint("BOTTOM", UIParent, "CENTER", 0,
+    SELF_BASE_HEIGHT / math.max(zoom, 2) / 2 + GroupHighlight.GetLiftOffset() - 20)
   selfArrow.Texture:SetVertexColor(GetColor("player"))
   selfArrow:Show()
 end
 
--- While the editor is open the arrow above yourself can be dragged; the offset is
--- saved. Right-click puts it back.
-local editing = false
+-- The arrow above yourself always sits at its fixed spot and never takes the mouse
+-- (dragging it was removed). The editor still calls this when it opens and closes.
+GroupHighlight.SetEditing = function() end
 
-local function GetCursor()
-  local x, y = GetCursorPosition()
-  local scale = UIParent:GetEffectiveScale()
-  return x / scale, y / scale
+-- Inside dungeons, raids and scenarios the game doesn't allow arrows above friendly players,
+-- so friendly nameplates would only be in the way there. They are not switched on there;
+-- your own setting comes back on entering, and ours again on leaving.
+local NO_ARROW_INSTANCES = { party = true, raid = true, scenario = true }
+local function InNoArrowInstance()
+  local inInstance, kind = IsInInstance()
+  return inInstance and NO_ARROW_INSTANCES[kind] or false
 end
-
-local function SetupSelfDrag(arrow)
-  local drag
-  arrow:SetScript("OnMouseDown", function(_, button)
-    local options = GetOptions()
-    if button ~= "LeftButton" or not editing or not options then return end
-    local x, y = GetCursor()
-    drag = { x = x, y = y, offsetX = options.SelfX or 0, offsetY = options.SelfY or 0 }
-  end)
-  arrow:SetScript("OnMouseUp", function(_, button)
-    local options = GetOptions()
-    drag = nil
-    if button == "RightButton" and editing and options then
-      options.SelfX, options.SelfY = 0, 0
-    end
-  end)
-  arrow:SetScript("OnUpdate", function()
-    local options = GetOptions()
-    if not drag or not options then return end
-    local x, y = GetCursor()
-    options.SelfX = math.floor(drag.offsetX + x - drag.x + 0.5)
-    options.SelfY = math.floor(drag.offsetY + y - drag.y + 0.5)
-  end)
-  arrow:SetScript("OnEnter", function(self)
-    if not editing then return end
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText(L("editor_tip_drag"), nil, nil, nil, nil, true)
-    GameTooltip:Show()
-  end)
-  arrow:SetScript("OnLeave", GameTooltip_Hide)
-end
-
-GroupHighlight.SetEditing = function(enabled)
-  editing = enabled and true or false
-  if selfArrow then
-    selfArrow:EnableMouse(editing)
-    selfArrow:SetFrameStrata(editing and "MEDIUM" or "BACKGROUND")
-  end
-end
+GroupHighlight.InNoArrowInstance = InNoArrowInstance
 
 -- The game only shows these nameplates with these CVars. Originals are saved and
--- restored when the option that needed them is switched off.
+-- restored when the option that needed them is switched off (or in a dungeon or raid).
 GroupHighlight.ApplyFriendlyPlates = function()
   local options = GetOptions()
   if not options or not C_CVar or not C_CVar.GetCVar then return end
@@ -254,7 +218,7 @@ GroupHighlight.ApplyFriendlyPlates = function()
   pendingCVars = false
   options.CVarRestore = options.CVarRestore or {}
   local wanted = {}
-  if GetMode() ~= "off" then
+  if GetMode() ~= "off" and not InNoArrowInstance() then
     for _, name in ipairs(PLAYER_CVARS) do wanted[name] = true end
   end
   -- The target option never touches NPC nameplates. NPC_CVARS is only here to put back a value an older
@@ -303,8 +267,7 @@ GroupHighlight.Highlight_Refresh = function()
     selfArrow = CreateArrow(UIParent)
     selfArrow:SetFrameStrata("BACKGROUND")
     selfArrow:Hide()
-    SetupSelfDrag(selfArrow)
-    GroupHighlight.SetEditing(editing)
+    selfArrow:EnableMouse(false)
   end
   for _, plate in ipairs(C_NamePlate.GetNamePlates()) do
     ReleaseArrow(plate)
@@ -323,7 +286,8 @@ eventFrame:SetScript("OnUpdate", function(_, delta)
   UpdateSelfArrow()
 end)
 
-eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD") -- also fires on entering and leaving an instance
+eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -336,6 +300,8 @@ eventFrame:SetScript("OnEvent", function(_, event, unit)
     ReleaseArrow(C_NamePlate.GetNamePlateForUnit(unit))
   elseif event == "PLAYER_REGEN_ENABLED" then
     if pendingCVars then GroupHighlight.Highlight_Refresh() end
+  elseif event == "ZONE_CHANGED_NEW_AREA" then
+    GroupHighlight.ApplyFriendlyPlates()
   elseif event == "PLAYER_ENTERING_WORLD" then
     C_Timer.After(0.5, function()
       GroupHighlight.Highlight_Refresh()

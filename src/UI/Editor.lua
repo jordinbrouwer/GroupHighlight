@@ -11,8 +11,8 @@ local LAYOUT = {
   MARGIN = 16,
   COLUMN = 300,
   GAP = 16,
-  TITLE = 38,
-  FOOTER = 64,
+  TITLE = 39, -- 38 visible + the 1-pixel line, so the close cross has 8 above and below
+  FOOTER = 4, -- no button row anymore (Reset sits next to "Look"), just a little room
   ROW = 24,
   SECTION = 28,
   PREVIEW_HEIGHT = 122,
@@ -25,7 +25,7 @@ LAYOUT.HEIGHT = LAYOUT.TITLE + LAYOUT.STRIP + LAYOUT.CONTENT + LAYOUT.FOOTER
 local UI = GroupHighlight.UI
 local THEME = UI.THEME
 local AddBorder, SetBorderColor, AddTooltip = UI.AddBorder, UI.SetBorderColor, UI.AddTooltip
-local CreateButton, CreateSwatch, GetClassColor = UI.CreateButton, UI.CreateSwatch, UI.GetClassColor
+local CreateSwatch, GetClassColor = UI.CreateSwatch, UI.GetClassColor
 
 local window
 local syncing = false
@@ -49,12 +49,12 @@ local function BuildInstanceStrip()
   line:SetColorTexture(unpack(AMBER))
   line:SetPoint("BOTTOMLEFT", strip, "BOTTOMLEFT", 0, 0)
   line:SetPoint("BOTTOMRIGHT", strip, "BOTTOMRIGHT", 0, 0)
-  line:SetHeight(1)
+  UI.OnePixel(line, true)
   local dot = strip:CreateTexture(nil, "OVERLAY")
   dot:SetSize(8, 8)
   dot:SetColorTexture(unpack(AMBER))
   dot:SetPoint("LEFT", strip, "LEFT", LAYOUT.MARGIN, 0)
-  local text = strip:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  local text = strip:CreateFontString(nil, "OVERLAY", "GroupHighlightFontHighlightSmall")
   text:SetPoint("LEFT", dot, "RIGHT", 8, 0)
   text:SetTextColor(1, 0.85, 0.6, 1)
   text:SetText(L("instance_banner"))
@@ -65,34 +65,85 @@ local function GetOptions()
 end
 
 local function CreateSection(parent, x, y, width, text)
-  local title = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  local title = parent:CreateFontString(nil, "OVERLAY", "GroupHighlightFontNormal")
   title:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
   title:SetTextColor(unpack(THEME.GOLD))
   title:SetText(text)
   local line = parent:CreateTexture(nil, "ARTWORK")
   line:SetColorTexture(unpack(THEME.LINE))
   line:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - 18)
-  line:SetSize(width, 1)
+  line:SetWidth(width)
+  UI.OnePixel(line, true)
+  return title
+end
+
+-- "Reset to defaults" as a small grey link on the right of a section title. The first click
+-- asks "Click again to reset" (for 3 seconds); the second click resets.
+local function CreateResetLink(parent, x, y, width, section)
+  local link = CreateFrame("Button", nil, parent)
+  link:SetHeight(16)
+  link:SetPoint("TOPRIGHT", parent, "TOPLEFT", x + width, y + 1)
+  -- Our own "reset" icon (Media\Reset.tga, white, tinted here) before the word.
+  link.Text = link:CreateFontString(nil, "OVERLAY", "GroupHighlightFontHighlightSmall")
+  link.Text:SetPoint("RIGHT", link, "RIGHT", 0, 0)
+  link.Icon = link:CreateTexture(nil, "ARTWORK")
+  link.Icon:SetSize(12, 12)
+  link.Icon:SetPoint("RIGHT", link.Text, "LEFT", -4, 0)
+  link.Icon:SetTexture("Interface\\AddOns\\GroupHighlight\\Media\\Reset")
+  local armedUntil
+  local function Show(text, r, g, b)
+    link.Text:SetText(text)
+    link.Text:SetTextColor(r, g, b, 1)
+    link.Icon:SetVertexColor(r, g, b, 1)
+    link:SetWidth((link.Text:GetStringWidth() or 60) + 16 + 4)
+  end
+  local function Rest()
+    armedUntil = nil
+    Show(L("editor_reset"), 0.5, 0.52, 0.58)
+  end
+  Rest()
+  link:SetScript("OnEnter", function()
+    if not armedUntil then Show(L("editor_reset"), THEME.GOLD[1], THEME.GOLD[2], THEME.GOLD[3]) end
+  end)
+  link:SetScript("OnLeave", function()
+    if not armedUntil then Show(L("editor_reset"), 0.5, 0.52, 0.58) end
+  end)
+  link:SetScript("OnClick", function()
+    if armedUntil and GetTime() < armedUntil then
+      GroupHighlight.ResetSection(section)
+      Rest()
+      return
+    end
+    armedUntil = GetTime() + 3
+    Show(L("editor_reset_confirm"), 1, 0.42, 0.42)
+    C_Timer.After(3, function()
+      if armedUntil and GetTime() >= armedUntil then Rest() end
+    end)
+  end)
+  AddTooltip(link, L("editor_tip_reset_" .. section))
+  return link
 end
 
 local function CreateCheck(parent, x, y, width, labelText, tooltipText, onClick)
   local row = CreateFrame("Frame", nil, parent)
   row:SetSize(width, LAYOUT.ROW)
   row:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
-  local check = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
-  check:SetSize(24, 24)
-  check:SetPoint("LEFT", row, "LEFT", 0, 0)
-  local label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-  label:SetPoint("LEFT", check, "RIGHT", 4, 0)
+  -- Our own flat check box (UI.CreateCheckbox), not Blizzard's template.
+  local check = GroupHighlight.UI.CreateCheckbox(row, function(self)
+    if not syncing then onClick(self:GetChecked() == true) end
+  end)
+  check:SetPoint("LEFT", row, "LEFT", 4, 0)
+  local label = row:CreateFontString(nil, "OVERLAY", "GroupHighlightFontHighlight")
+  label:SetPoint("LEFT", check, "RIGHT", 10, 0)
   label:SetText(labelText)
   row:EnableMouse(true)
   row:SetScript("OnMouseUp", function(_, button)
     if button == "LeftButton" then check:Click() end
   end)
+  -- Hovering the label lights up the box too.
+  row:HookScript("OnEnter", function() check.hover = true check:SetChecked(check.checked) end)
+  row:HookScript("OnLeave", function() check.hover = false check:SetChecked(check.checked) end)
   AddTooltip(row, tooltipText)
-  check:SetScript("OnClick", function(self)
-    if not syncing then onClick(self:GetChecked() == true) end
-  end)
   return check
 end
 
@@ -108,7 +159,7 @@ local function CreateSegment(parent, x, y, width, height, entries, onSelect, lab
     button.Background = button:CreateTexture(nil, "BACKGROUND")
     button.Background:SetAllPoints(button)
     button.Border = AddBorder(button, THEME.BORDER)
-    button.Label = button:CreateFontString(nil, "OVERLAY", labelFont or "GameFontHighlight")
+    button.Label = button:CreateFontString(nil, "OVERLAY", labelFont or "GroupHighlightFontHighlight")
     if entry.icon and inline then
       button.Label:SetPoint("CENTER", button, "CENTER", 14, 0)
       button.Icon = button:CreateTexture(nil, "ARTWORK")
@@ -160,10 +211,10 @@ local function CreateSlider(parent, x, y, width, key, minValue, maxValue, labelK
   local holder = CreateFrame("Frame", nil, parent)
   holder:SetSize(width, 40)
   holder:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
-  local label = holder:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  local label = holder:CreateFontString(nil, "OVERLAY", "GroupHighlightFontHighlight")
   label:SetPoint("TOPLEFT", holder, "TOPLEFT", 0, 0)
   label:SetText(L(labelKey))
-  local valueText = holder:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  local valueText = holder:CreateFontString(nil, "OVERLAY", "GroupHighlightFontNormal")
   valueText:SetPoint("TOPRIGHT", holder, "TOPRIGHT", 0, 0)
 
   local slider = CreateFrame("Slider", nil, holder)
@@ -294,6 +345,7 @@ end
 local function BuildLeft(parent, x, y)
   local width = LAYOUT.COLUMN
   CreateSection(parent, x, y, width, L("editor_section_who"))
+  CreateResetLink(parent, x, y, width, "who")
   y = y - LAYOUT.SECTION - 4
   local modeEntries = {}
   for _, mode in ipairs(GroupHighlight.Modes) do
@@ -316,6 +368,7 @@ local function BuildLeft(parent, x, y)
   y = y - 14
 
   CreateSection(parent, x, y, width, L("editor_section_look"))
+  CreateResetLink(parent, x, y, width, "look")
   y = y - LAYOUT.SECTION - 4
   shapeSegment = CreateSegment(parent, x, y, width, 38, {
     { key = "triangle", label = L("shape_triangle"), tip = L("shape_tip_triangle"), icon = GroupHighlight.StyleTextures.triangle_filled },
@@ -356,22 +409,23 @@ local function BuildRight(parent, x, y)
   background:SetColorTexture(unpack(THEME.INSET))
   AddBorder(box, THEME.LINE)
   preview = { Frame = box }
-  preview.Name = box:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  preview.Name = box:CreateFontString(nil, "OVERLAY", "GroupHighlightFontNormalLarge")
   preview.Name:SetPoint("BOTTOM", box, "BOTTOM", 0, 14)
   preview.Arrow = box:CreateTexture(nil, "ARTWORK")
   preview.Arrow:SetBlendMode("ADD")
   y = y - LAYOUT.PREVIEW_HEIGHT - 14
 
   CreateSection(parent, x, y, width, L("editor_section_party"))
+  CreateResetLink(parent, x, y, width, "colours")
   y = y - LAYOUT.SECTION - 2
-  noPartyText = parent:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+  noPartyText = parent:CreateFontString(nil, "OVERLAY", "GroupHighlightFontDisable")
   noPartyText:SetPoint("TOPLEFT", parent, "TOPLEFT", x + 2, y - 4)
   noPartyText:SetText(L("editor_no_party"))
   for index = 1, #MEMBER_UNITS do
     local row = CreateFrame("Frame", nil, parent)
     row:SetSize(width, LAYOUT.ROW)
     row:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
-    row.Label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    row.Label = row:CreateFontString(nil, "OVERLAY", "GroupHighlightFontHighlight")
     row.Label:SetPoint("LEFT", row, "LEFT", 2, 0)
     row.Swatch = CreateSwatch(row, L("editor_tip_member"))
     row.Swatch:SetPoint("RIGHT", row, "RIGHT", -2, 0)
@@ -418,43 +472,48 @@ local function BuildTitleBar()
   line:SetColorTexture(THEME.GOLD[1], THEME.GOLD[2], THEME.GOLD[3], 0.55)
   line:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", 0, 0)
   line:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 0, 0)
-  line:SetHeight(1)
+  UI.OnePixel(line, true)
 
   local icon = bar:CreateTexture(nil, "ARTWORK")
   icon:SetSize(26, 26)
   icon:SetPoint("LEFT", bar, "LEFT", 12, 0)
   icon:SetTexture(ICON_PATH)
-  local title = bar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  local title = bar:CreateFontString(nil, "OVERLAY", "GroupHighlightFontNormalLarge")
   title:SetPoint("LEFT", icon, "RIGHT", 8, 0)
   title:SetText("GroupHighlight")
 
+  -- Close: the same cross as in LuaPad. A 22x22 square with two thin bars at 45 degrees;
+  -- grey, and white on a red square while the mouse is on it. The title bar shows 38 pixels
+  -- above its 1-pixel line, so 8 above, 8 below and 8 from the right edge.
   local close = CreateFrame("Button", nil, bar)
-  close:SetSize(28, 28)
-  close:SetPoint("RIGHT", bar, "RIGHT", -6, 0)
-  local mark = close:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-  mark:SetPoint("CENTER", close, "CENTER", 0, 1)
-  mark:SetText("x")
-  mark:SetTextColor(0.7, 0.7, 0.7, 1)
-  close:SetScript("OnEnter", function() mark:SetTextColor(unpack(THEME.GOLD)) end)
-  close:SetScript("OnLeave", function() mark:SetTextColor(0.7, 0.7, 0.7, 1) end)
+  close:SetSize(22, 22)
+  close:SetPoint("TOPRIGHT", bar, "TOPRIGHT", -8, -8)
+  close.Back = close:CreateTexture(nil, "BACKGROUND")
+  close.Back:SetAllPoints(close)
+  close.Back:SetColorTexture(1, 1, 1, 0)
+  local bars = {}
+  for _, angle in ipairs({ 45, -45 }) do
+    local b = close:CreateTexture(nil, "ARTWORK")
+    b:SetSize(13, 1.5)
+    b:SetPoint("CENTER", close, "CENTER", 0, 0)
+    b:SetRotation(math.rad(angle))
+    bars[#bars + 1] = b
+  end
+  -- On hover the square fills with GroupHighlight's gold and the cross turns dark
+  -- (LuaPad does the same with its own accent colour).
+  local function Paint(hover)
+    local r, g, b = 0.5, 0.52, 0.58
+    if hover then r, g, b = 0.1, 0.08, 0.02 end
+    for _, t in ipairs(bars) do t:SetColorTexture(r, g, b, 1) end
+    local gold = THEME.GOLD
+    close.Back:SetColorTexture(gold[1], gold[2], gold[3], hover and 0.9 or 0)
+  end
+  close:SetScript("OnEnter", function() Paint(true) end)
+  close:SetScript("OnLeave", function() Paint(false) end)
   close:SetScript("OnClick", function() window:Hide() end)
+  Paint(false)
 end
 
-local function BuildFooter()
-  local line = window:CreateTexture(nil, "ARTWORK")
-  line:SetColorTexture(unpack(THEME.LINE))
-  line:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", LAYOUT.MARGIN, LAYOUT.FOOTER)
-  line:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -LAYOUT.MARGIN, LAYOUT.FOOTER)
-  line:SetHeight(1)
-
-  local defaults = CreateButton(window, L("editor_defaults"), 120, false, function()
-    GroupHighlight.ResetOptions()
-  end, L("editor_tip_defaults"))
-  defaults:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", LAYOUT.MARGIN, 18)
-
-  local close = CreateButton(window, L("editor_close"), 120, true, function() window:Hide() end)
-  close:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -LAYOUT.MARGIN, 18)
-end
 local function BuildWindow()
   window = CreateFrame("Frame", WINDOW_NAME, UIParent)
   window:SetSize(LAYOUT.WIDTH, LAYOUT.HEIGHT)
@@ -482,7 +541,6 @@ local function BuildWindow()
   content:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", 0, LAYOUT.FOOTER)
   BuildLeft(content, LAYOUT.MARGIN, -14)
   BuildRight(content, LAYOUT.MARGIN + LAYOUT.COLUMN + LAYOUT.GAP, -14)
-  BuildFooter()
 
   window:SetScript("OnShow", function()
     GroupHighlight.SetEditing(true)

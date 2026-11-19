@@ -3,6 +3,19 @@ Written by the release pipeline from the commits; see `CONTRIBUTING.md`.
 
 ## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.1.0...master)
 
+### Added
+- A Reset link next to each section title (who gets an arrow, look, party colours) that puts only that section back to its defaults. It asks for a second click to confirm.
+- Own font (Expressway) for the editor, colour picker and settings panel.
+- Own flat check boxes and a new close cross in the editor title bar.
+
+### Changed
+- Friendly nameplates are no longer turned on inside dungeons, raids and scenarios, where arrows above friendly players can't be shown anyway. Your own setting comes back there.
+- Lines and borders are now exactly one pixel thick at every UI scale.
+
+### Removed
+- The Defaults and Close buttons at the bottom of the editor.
+- Dragging the arrow above yourself; it now always sits at its fixed spot.
+
 ## [1.1.0 (2026-11-17)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.1.0)
 
 ### Added

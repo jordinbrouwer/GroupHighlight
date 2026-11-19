@@ -15,8 +15,6 @@ GroupHighlight.Defaults = {
   MemberColors = {},
   ArrowSize = 32,
   Lift = 1,
-  SelfX = 0,
-  SelfY = 0,
 }
 
 local function GetOptions()
@@ -109,6 +107,25 @@ GroupHighlight.SetMemberColor = function(name, r, g, b)
   options.MemberColors = options.MemberColors or {}
   options.MemberColors[name] = r and { r = r, g = g, b = b } or nil
   NotifyChanged("MemberColors")
+end
+
+-- The options of each section of the window, so a section can be reset on its own.
+GroupHighlight.Sections = {
+  who = { "Mode", "ShowSelf", "ShowTarget" },
+  look = { "Shape", "TriangleFilled", "ChevronCount", "ChevronFade", "ArrowSize", "Lift" },
+  colours = { "MemberColors" },
+}
+
+-- Puts only the options of one section ("who", "look" or "colours") back to their defaults.
+GroupHighlight.ResetSection = function(section)
+  local options = GetOptions()
+  local keys = GroupHighlight.Sections[section]
+  if not options or not keys then return end
+  for _, key in ipairs(keys) do
+    options[key] = CopyValue(GroupHighlight.Defaults[key])
+  end
+  if section == "who" then options.LastMode = nil end
+  NotifyChanged("Defaults")
 end
 
 GroupHighlight.ResetOptions = function()

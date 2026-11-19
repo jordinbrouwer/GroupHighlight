@@ -12,11 +12,11 @@ function GroupHighlight.BuildPanel()
   icon:SetPoint("TOPLEFT", 16, -16)
   icon:SetTexture("Interface\\AddOns\\GroupHighlight\\GroupHighlight")
 
-  local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalHuge")
+  local title = panel:CreateFontString(nil, "ARTWORK", "GroupHighlightFontNormalHuge")
   title:SetPoint("LEFT", icon, "RIGHT", 10, 0)
   title:SetText("GroupHighlight")
 
-  local desc = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+  local desc = panel:CreateFontString(nil, "ARTWORK", "GroupHighlightFontHighlight")
   desc:SetPoint("TOPLEFT", icon, "BOTTOMLEFT", 0, -16)
   desc:SetText(L("panel_description"))
   desc:SetJustifyH("LEFT")
