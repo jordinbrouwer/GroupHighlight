@@ -5,6 +5,7 @@
 ## IconTexture: Interface\AddOns\GroupHighlight\GroupHighlight
 ## Version: @project-version@
 ## Author: Jordin
+## X-Website: https://www.curseforge.com/wow/addons/group-highlight
 
 ## DefaultState: enabled
 ## LoadOnDemand: 0

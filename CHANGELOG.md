@@ -1,9 +1,9 @@
 # Changelog
-All notable changes to this project will be documented in this file.
+Written by the release pipeline from the commits; see `CONTRIBUTING.md`.
 
-## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.1.0...main)
+## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.1.0...master)
 
-## [1.1.0 (2026-11-17)](https://github.com/jordinbrouwer/GroupHighlight/compare/1.0.0...1.1.0)
+## [1.1.0 (2026-11-17)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.1.0)
 
 ### Added
 - `shell` (ShellCheck) and `smoke` checks. The `toc` check now also catches Lua files missing from the `.toc` and duplicate entries.

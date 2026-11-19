@@ -2,6 +2,9 @@
 
 Put an arrow above your party and raid members, so you can find them in a crowd. One arrow per player, in their class colour or a colour you pick.
 
+<!-- release:start -->
+<!-- release:end -->
+
 <img src="docs/images/1-in-game.png" alt="In game: a blue arrow above a party member and a gold arrow above yourself." width="320">
 
 ## Usage
