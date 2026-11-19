@@ -1,12 +1,16 @@
 # Changelog
 Written by the release pipeline from the commits; see `CONTRIBUTING.md`.
 
-## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.1.0...master)
+## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.2.0...master)
+
+## [1.2.0 (2026-11-19)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.2.0)
 
 ### Added
 - A Reset link next to each section title (who gets an arrow, look, party colours) that puts only that section back to its defaults. It asks for a second click to confirm.
 - Own font (Expressway) for the editor, colour picker and settings panel.
 - Own flat check boxes and a new close cross in the editor title bar.
+
+- Per-section reset, own font and refreshed screenshots. ([76f0267](https://github.com/jordinbrouwer/GroupHighlight/commit/76f02674fbbbb7098d5c7f22141d30bf559a57b1))
 
 ### Changed
 - Friendly nameplates are no longer turned on inside dungeons, raids and scenarios, where arrows above friendly players can't be shown anyway. Your own setting comes back there.
