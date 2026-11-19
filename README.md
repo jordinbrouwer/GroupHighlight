@@ -4,21 +4,6 @@ Put an arrow above your party and raid members, so you can find them in a crowd.
 
 <!-- release:start -->
 [![CurseForge](https://img.shields.io/curseforge/v/1798373?label=CurseForge)](https://www.curseforge.com/wow/addons/group-highlight) [![Downloads](https://img.shields.io/curseforge/dt/1798373?label=downloads)](https://www.curseforge.com/wow/addons/group-highlight) [![GitHub release](https://img.shields.io/github/v/release/jordinbrouwer/GroupHighlight?label=GitHub)](https://github.com/jordinbrouwer/GroupHighlight/releases/latest)
-
-**Latest release: [1.2.0](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.2.0)** (2026-11-19) · [CurseForge](https://www.curseforge.com/wow/addons/group-highlight) · [All changes](CHANGELOG.md)
-
-**Added**
-- A Reset link next to each section title (who gets an arrow, look, party colours) that puts only that section back to its defaults. It asks for a second click to confirm.
-- Own font (Expressway) for the editor, colour picker and settings panel.
-- Own flat check boxes and a new close cross in the editor title bar.
-
-**Changed**
-- Friendly nameplates are no longer turned on inside dungeons, raids and scenarios, where arrows above friendly players can't be shown anyway. Your own setting comes back there.
-- Lines and borders are now exactly one pixel thick at every UI scale.
-
-**Removed**
-- The Defaults and Close buttons at the bottom of the editor.
-- Dragging the arrow above yourself; it now always sits at its fixed spot.
 <!-- release:end -->
 
 <img src="docs/images/1-in-game.png" alt="In game: a blue arrow above a party member and a gold arrow above yourself." width="320">
