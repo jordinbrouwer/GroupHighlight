@@ -12,8 +12,6 @@ Put an arrow above your party and raid members, so you can find them in a crowd.
 - Own font (Expressway) for the editor, colour picker and settings panel.
 - Own flat check boxes and a new close cross in the editor title bar.
 
-- Per-section reset, own font and refreshed screenshots. ([76f0267](https://github.com/jordinbrouwer/GroupHighlight/commit/76f02674fbbbb7098d5c7f22141d30bf559a57b1))
-
 **Changed**
 - Friendly nameplates are no longer turned on inside dungeons, raids and scenarios, where arrows above friendly players can't be shown anyway. Your own setting comes back there.
 - Lines and borders are now exactly one pixel thick at every UI scale.

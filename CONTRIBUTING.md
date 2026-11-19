@@ -11,7 +11,7 @@ Contributions are welcome.
 
 ## Guidelines
 
-- Write commits as [Conventional Commits](https://www.conventionalcommits.org/): `feat: ...`, `fix: ...`, `docs: ...`. Write the description for players, because it becomes the changelog line.
+- Write commits as [Conventional Commits](https://www.conventionalcommits.org/): `feat: ...`, `fix: ...`, `docs: ...`. Write the description for players, because it becomes the changelog line. A commit that adds its own lines to `CHANGELOG.md` gets no extra line.
 - Don't change version numbers; that happens automatically when a release is made.
 - Everything that ships with the addon lives in `src/`: the `.toc`, `Bindings.xml`, the icon, the Lua code in `Core/` and `UI/`, and the textures and font in `Media/`. Keep the `.toc` file list in load order.
 - To test in game, link `src/` into your AddOns folder as `GroupHighlight` (for example `Interface/AddOns/GroupHighlight -> <repo>/src`).
