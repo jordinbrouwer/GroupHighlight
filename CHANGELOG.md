@@ -1,7 +1,9 @@
 # Changelog
 Written by the release pipeline from the commits; see `CONTRIBUTING.md`.
 
-## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.2.0...master)
+## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.3.0...master)
+
+## [1.3.0 (2026-11-25)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.3.0)
 
 ### Added
 - The editor can be resized: drag the grip in the bottom right corner to change its width and height, right-click it to go back to the default size. Wide, the sections sit in two columns; narrow, in one column with a thin scroll bar.
