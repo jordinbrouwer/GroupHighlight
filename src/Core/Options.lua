@@ -1,10 +1,10 @@
-GroupHighlight = GroupHighlight or {}
-GroupHighlight.AddonName = ...
+-- The settings: their defaults, changing them, and tidying the saved file when the addon loads.
+local GH = GroupHighlight
+local GetOptions = GH.GetOptions
 
-GroupHighlight.Modes = { "off", "party", "raid" }
-GroupHighlight.Shapes = { "triangle", "chevron" }
+GH.Modes = { "off", "party", "raid" }
 
-GroupHighlight.Defaults = {
+GH.Defaults = {
   Mode = "party",
   ShowSelf = false,
   ShowTarget = false,
@@ -17,9 +17,12 @@ GroupHighlight.Defaults = {
   Lift = 1,
 }
 
-local function GetOptions()
-  return GroupHighlightDB
-end
+-- The settings of each section of the window, so a section can be reset on its own.
+GH.Sections = {
+  who = { "Mode", "ShowSelf", "ShowTarget" },
+  look = { "Shape", "TriangleFilled", "ChevronCount", "ChevronFade", "ArrowSize", "Lift" },
+  colours = { "MemberColors" },
+}
 
 local function CopyValue(value)
   if type(value) ~= "table" then return value end
@@ -30,15 +33,87 @@ local function CopyValue(value)
   return copy
 end
 
-GroupHighlight.IsValidMode = function(mode)
-  for _, value in ipairs(GroupHighlight.Modes) do
+-- "off", "party" or "raid".
+GH.GetMode = function()
+  local options = GetOptions()
+  return options and options.Mode or "off"
+end
+
+GH.IsValidMode = function(mode)
+  for _, value in ipairs(GH.Modes) do
     if value == mode then return true end
   end
   return false
 end
 
--- Older versions had one Style option; it is split into a shape and its options.
-GroupHighlight.MigrateStyle = function(options)
+-- Tells the window and the arrows that something changed.
+local function NotifyChanged(key)
+  if GH.RefreshWindow then GH.RefreshWindow(key) end
+  if GH.Highlight_Refresh then GH.Highlight_Refresh() end
+end
+
+GH.SetOption = function(key, value)
+  local options = GetOptions()
+  if not options or options[key] == value then return false end
+  options[key] = value
+  NotifyChanged(key)
+  return true
+end
+
+GH.SetMode = function(mode)
+  if not GH.IsValidMode(mode) then return false end
+  local options = GetOptions()
+  -- Remember the mode that is being switched off, so it can come back later.
+  if options and mode == "off" and options.Mode ~= "off" then options.LastMode = options.Mode end
+  GH.SetOption("Mode", mode)
+  return true
+end
+
+-- Key binding: Off when it is on, and back to the mode it had before (not the default) when it is off.
+GH.ToggleEnabled = function()
+  local options = GetOptions()
+  if not options then return end
+  local L = GH.Loc
+  if options.Mode ~= "off" then
+    GH.SetMode("off")
+    GH.ShowToast(L("toggle_message"):format(L("mode_off")))
+    return
+  end
+  local mode = options.LastMode
+  if not mode or mode == "off" or not GH.IsValidMode(mode) then
+    mode = GH.Defaults.Mode
+  end
+  GH.SetMode(mode)
+  GH.ShowToast(L("toggle_message"):format(L("mode_" .. mode)))
+end
+
+-- name is the unit's full name; passing no color resets it to the class color.
+GH.SetMemberColor = function(name, r, g, b)
+  local options = GetOptions()
+  if not options or not name then return end
+  options.MemberColors = options.MemberColors or {}
+  options.MemberColors[name] = r and { r = r, g = g, b = b } or nil
+  NotifyChanged("MemberColors")
+end
+
+-- Puts only the settings of one section ("who", "look" or "colours") back to their defaults.
+GH.ResetSection = function(section)
+  local options = GetOptions()
+  local keys = GH.Sections[section]
+  if not options or not keys then return end
+  for _, key in ipairs(keys) do
+    options[key] = CopyValue(GH.Defaults[key])
+  end
+  if section == "who" then options.LastMode = nil end
+  NotifyChanged("Defaults")
+end
+
+---------------------------------------------------------------- the saved file
+-- DB_VERSION goes up when settings are renamed or removed; the steps run once.
+local DB_VERSION = 2
+
+-- Older versions had one Style setting; it is split into a shape and its options.
+local function MigrateStyle(options)
   local style = options.Style
   if style == nil then return end
   options.Style = nil
@@ -56,110 +131,30 @@ GroupHighlight.MigrateStyle = function(options)
   end
 end
 
-local function NotifyChanged(key)
-  if GroupHighlight.Editor_OnOptionsChanged then
-    GroupHighlight.Editor_OnOptionsChanged(key)
-  end
-  if GroupHighlight.Highlight_Refresh then
-    GroupHighlight.Highlight_Refresh()
-  end
+local function Migrate(options)
+  if (options.DbVersion or 0) >= DB_VERSION then return end
+  MigrateStyle(options)
+  options.DbVersion = DB_VERSION
 end
 
-GroupHighlight.SetOption = function(key, value)
-  local options = GetOptions()
-  if not options or options[key] == value then return false end
-  options[key] = value
-  NotifyChanged(key)
-  return true
+-- Puts a value back to its default when it is not something the addon can use.
+local function Sanitize(options)
+  local defaults = GH.Defaults
+  if options.Shape ~= "triangle" and options.Shape ~= "chevron" then options.Shape = defaults.Shape end
+  local count = options.ChevronCount
+  if type(count) ~= "number" or count < 1 or count > 3 then options.ChevronCount = defaults.ChevronCount end
+  if options.Lift == nil or options.Lift < 1 or options.Lift > 60 then options.Lift = defaults.Lift end
+  if not GH.IsValidMode(options.Mode) then options.Mode = defaults.Mode end
 end
 
-GroupHighlight.SetMode = function(mode)
-  if not GroupHighlight.IsValidMode(mode) then return false end
-  local options = GetOptions()
-  -- Remember the mode that is being switched off, so it can come back later.
-  if options and mode == "off" and options.Mode ~= "off" then options.LastMode = options.Mode end
-  GroupHighlight.SetOption("Mode", mode)
-  return true
-end
-
--- Key binding: Off when it is on, and back to the mode it had before (not the default) when it is off.
-GroupHighlight.ToggleEnabled = function()
-  local options = GetOptions()
-  if not options then return end
-  local L = GroupHighlight.Loc
-  if options.Mode ~= "off" then
-    GroupHighlight.SetMode("off")
-    print(L("toggle_message"):format(L("mode_off")))
-    return
-  end
-  local mode = options.LastMode
-  if not mode or mode == "off" or not GroupHighlight.IsValidMode(mode) then
-    mode = GroupHighlight.Defaults.Mode
-  end
-  GroupHighlight.SetMode(mode)
-  print(L("toggle_message"):format(L("mode_" .. mode)))
-end
-
--- name is the unit's full name; passing no color resets it to the class color.
-GroupHighlight.SetMemberColor = function(name, r, g, b)
-  local options = GetOptions()
-  if not options or not name then return end
-  options.MemberColors = options.MemberColors or {}
-  options.MemberColors[name] = r and { r = r, g = g, b = b } or nil
-  NotifyChanged("MemberColors")
-end
-
--- The options of each section of the window, so a section can be reset on its own.
-GroupHighlight.Sections = {
-  who = { "Mode", "ShowSelf", "ShowTarget" },
-  look = { "Shape", "TriangleFilled", "ChevronCount", "ChevronFade", "ArrowSize", "Lift" },
-  colours = { "MemberColors" },
-}
-
--- Puts only the options of one section ("who", "look" or "colours") back to their defaults.
-GroupHighlight.ResetSection = function(section)
-  local options = GetOptions()
-  local keys = GroupHighlight.Sections[section]
-  if not options or not keys then return end
-  for _, key in ipairs(keys) do
-    options[key] = CopyValue(GroupHighlight.Defaults[key])
-  end
-  if section == "who" then options.LastMode = nil end
-  NotifyChanged("Defaults")
-end
-
-GroupHighlight.ResetOptions = function()
-  local options = GetOptions()
-  if not options then return end
-  for key, value in pairs(GroupHighlight.Defaults) do
-    options[key] = CopyValue(value)
-  end
-  options.LastMode = nil
-  NotifyChanged("Defaults")
-end
-
-local eventFrame = CreateFrame("Frame")
-eventFrame:RegisterEvent("ADDON_LOADED")
-eventFrame:SetScript("OnEvent", function(_, _, arg1)
-  if arg1 ~= GroupHighlight.AddonName then return end
+GH.On("ADDON_LOADED", function(addonName)
+  if addonName ~= GH.AddonName then return end
   GroupHighlightDB = GroupHighlightDB or {}
-  GroupHighlight.MigrateStyle(GroupHighlightDB)
-  for key, value in pairs(GroupHighlight.Defaults) do
-    if GroupHighlightDB[key] == nil then
-      GroupHighlightDB[key] = CopyValue(value)
-    end
+  local options = GroupHighlightDB
+  Migrate(options)
+  for key, value in pairs(GH.Defaults) do
+    if options[key] == nil then options[key] = CopyValue(value) end
   end
-  if GroupHighlightDB.Shape ~= "triangle" and GroupHighlightDB.Shape ~= "chevron" then GroupHighlightDB.Shape = GroupHighlight.Defaults.Shape end
-  if type(GroupHighlightDB.ChevronCount) ~= "number" or GroupHighlightDB.ChevronCount < 1 or GroupHighlightDB.ChevronCount > 3 then GroupHighlightDB.ChevronCount = GroupHighlight.Defaults.ChevronCount end
-  if GroupHighlightDB.Lift == nil or GroupHighlightDB.Lift < 1 or GroupHighlightDB.Lift > 60 then GroupHighlightDB.Lift = GroupHighlight.Defaults.Lift end
-  if not GroupHighlight.IsValidMode(GroupHighlightDB.Mode) then
-    GroupHighlightDB.Mode = GroupHighlight.Defaults.Mode
-  end
-  if GroupHighlight.Highlight_Refresh then
-    GroupHighlight.Highlight_Refresh()
-  end
-  eventFrame:UnregisterEvent("ADDON_LOADED")
+  Sanitize(options)
+  if GH.Highlight_Refresh then GH.Highlight_Refresh() end
 end)
-
-SLASH_GROUPHIGHLIGHT1 = "/gh"
-SLASH_GROUPHIGHLIGHT2 = "/grouphighlight"

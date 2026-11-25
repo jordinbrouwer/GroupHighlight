@@ -1,85 +1,34 @@
--- A color picker made for this addon, fixed to the editor: a colour field for saturation and
--- brightness, a hue bar, class presets and a hex field. Changes show in the game world
--- immediately; Cancel or Esc undoes them.
-GroupHighlight = GroupHighlight or {}
-local L = GroupHighlight.Loc
-local UI = GroupHighlight.UI
+-- The colour picker, fixed to the editor: a colour field, a hue bar, class presets and a hex field.
+-- Changes show in the game at once; Cancel or Esc undoes them.
+local GH = GroupHighlight
+local L = GH.Loc
+local UI = GH.UI
+local S = UI.state
 local THEME = UI.THEME
+local GetOptions = GH.GetOptions
+local RGBToHSV, HSVToRGB, ToHex, FromHex, Near, Clamp01 = UI.RGBToHSV, UI.HSVToRGB, UI.ToHex, UI.FromHex, UI.Near, UI.Clamp01
 
 local WINDOW_NAME = "GroupHighlightColorPicker"
 local CLASS_TOKENS = {
   "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "DEATHKNIGHT", "SHAMAN",
   "MAGE", "WARLOCK", "MONK", "DRUID", "DEMONHUNTER", "EVOKER",
 }
-local LAYOUT = {
+local PICKER = {
   WIDTH = 300,
-  MARGIN = 14,
-  TITLE = 34,
-  FOOTER = 50,
-  FIELD_HEIGHT = 84,
-  HUE_HEIGHT = 14,
-  PRESET = 22,
-  PRESET_GAP = 4,
+  MARGIN = 10,
+  TITLE = 30,
+  FOOTER = 36,
+  FIELD_HEIGHT = 64,
+  HUE_HEIGHT = 10,
+  PRESET = 16,
+  PRESET_GAP = 3,
   PRESET_COLUMNS = 13,
 }
-LAYOUT.CONTENT_WIDTH = LAYOUT.WIDTH - LAYOUT.MARGIN * 2
+PICKER.CONTENT_WIDTH = PICKER.WIDTH - PICKER.MARGIN * 2
 local picker
 local state = { h = 0, s = 0, v = 1, silent = false }
 local presetButtons = {}
 local controls = {}
-
-local function GetOptions()
-  return GroupHighlightDB
-end
-
-local function RGBToHSV(r, g, b)
-  local max, min = math.max(r, g, b), math.min(r, g, b)
-  local delta = max - min
-  local h = 0
-  if delta > 0 then
-    if max == r then
-      h = ((g - b) / delta) % 6
-    elseif max == g then
-      h = (b - r) / delta + 2
-    else
-      h = (r - g) / delta + 4
-    end
-    h = h * 60
-  end
-  return h, max == 0 and 0 or delta / max, max
-end
-
-local function HSVToRGB(h, s, v)
-  local c = v * s
-  local x = c * (1 - math.abs((h / 60) % 2 - 1))
-  local m = v - c
-  local r, g, b
-  if h < 60 then r, g, b = c, x, 0
-  elseif h < 120 then r, g, b = x, c, 0
-  elseif h < 180 then r, g, b = 0, c, x
-  elseif h < 240 then r, g, b = 0, x, c
-  elseif h < 300 then r, g, b = x, 0, c
-  else r, g, b = c, 0, x end
-  return r + m, g + m, b + m
-end
-
-local function ToHex(r, g, b)
-  return ("%02X%02X%02X"):format(math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
-end
-
-local function FromHex(text)
-  local hex = (text or ""):gsub("#", "")
-  if #hex ~= 6 or hex:find("%X") then return end
-  return tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255
-end
-
-local function Near(a, b)
-  return math.abs(a - b) < 0.006
-end
-
-local function Clamp01(value)
-  return math.max(0, math.min(1, value))
-end
 
 -- Applies the current colour to the player; the class colour is stored as nothing, so the
 -- player keeps following their class.
@@ -87,9 +36,9 @@ local function Apply()
   local r, g, b = HSVToRGB(state.h, state.s, state.v)
   local cr, cg, cb = UI.GetClassColor(state.unit)
   if Near(r, cr) and Near(g, cg) and Near(b, cb) then
-    GroupHighlight.SetMemberColor(state.name)
+    GH.SetMemberColor(state.name)
   else
-    GroupHighlight.SetMemberColor(state.name, r, g, b)
+    GH.SetMemberColor(state.name, r, g, b)
   end
 end
 
@@ -103,7 +52,7 @@ local function UpdateControls(keepHex)
   if not keepHex then controls.hex:SetText(ToHex(r, g, b)) end
   for _, button in ipairs(presetButtons) do
     local selected = Near(button.r, r) and Near(button.g, g) and Near(button.b, b)
-    UI.SetBorderColor(button.Border, selected and THEME.GOLD or THEME.BORDER)
+    UI.SetBorderColor(button.Border, selected and THEME.ACCENT or THEME.BORDER)
   end
 end
 
@@ -116,10 +65,10 @@ end
 
 -- The square: saturation grows to the right, brightness grows upwards.
 local function CreateField(parent, y)
-  local width, height = LAYOUT.CONTENT_WIDTH, LAYOUT.FIELD_HEIGHT
+  local width, height = PICKER.CONTENT_WIDTH, PICKER.FIELD_HEIGHT
   local frame = CreateFrame("Frame", nil, parent)
   frame:SetSize(width, height)
-  frame:SetPoint("TOPLEFT", parent, "TOPLEFT", LAYOUT.MARGIN, y)
+  frame:SetPoint("TOPLEFT", parent, "TOPLEFT", PICKER.MARGIN, y)
   frame:EnableMouse(true)
 
   local base = frame:CreateTexture(nil, "BACKGROUND")
@@ -169,14 +118,14 @@ local function CreateField(parent, y)
     if not dragging then return end
     if IsMouseButtonDown("LeftButton") then Pick() else dragging = false end
   end)
-  UI.AddTooltip(frame, L("picker_tip_field"))
+  UI.AddTooltip(frame, L("picker_tip_field"), L("picker_name_field"))
   return field
 end
 
 local function CreateHueBar(parent, y)
-  local width, height = LAYOUT.CONTENT_WIDTH, LAYOUT.HUE_HEIGHT
+  local width, height = PICKER.CONTENT_WIDTH, PICKER.HUE_HEIGHT
   local slider = CreateFrame("Slider", nil, parent)
-  slider:SetPoint("TOPLEFT", parent, "TOPLEFT", LAYOUT.MARGIN, y)
+  slider:SetPoint("TOPLEFT", parent, "TOPLEFT", PICKER.MARGIN, y)
   slider:SetSize(width, height)
   slider:SetOrientation("HORIZONTAL")
   slider:SetMinMaxValues(0, 360)
@@ -192,7 +141,7 @@ local function CreateHueBar(parent, y)
   end
   slider:SetThumbTexture(UI.WHITE)
   local thumb = slider:GetThumbTexture()
-  thumb:SetSize(6, height + 4)
+  thumb:SetSize(4, height + 4)
   thumb:SetVertexColor(1, 1, 1)
 
   slider:SetScript("OnValueChanged", function(_, number)
@@ -201,7 +150,7 @@ local function CreateHueBar(parent, y)
     UpdateControls()
     Apply()
   end)
-  UI.AddTooltip(slider, L("picker_tip_hue"))
+  UI.AddTooltip(slider, L("picker_tip_hue"), L("picker_name_hue"))
   local control = {}
   control.Set = function(number) slider:SetValue(number) end
   return control
@@ -209,8 +158,8 @@ end
 
 local function CreateHexBox(parent)
   local box = CreateFrame("EditBox", nil, parent)
-  box:SetSize(76, 22)
-  box:SetFontObject("GroupHighlightFontHighlight")
+  box:SetSize(66, 20)
+  box:SetFontObject("GroupHighlightFontHighlightSmall")
   box:SetAutoFocus(false)
   box:SetMaxLetters(7)
   box:SetTextInsets(7, 7, 0, 0)
@@ -218,7 +167,7 @@ local function CreateHexBox(parent)
   background:SetAllPoints(box)
   background:SetColorTexture(unpack(THEME.INSET))
   local border = UI.AddBorder(box, THEME.BORDER)
-  box:SetScript("OnEditFocusGained", function() UI.SetBorderColor(border, THEME.GOLD) end)
+  box:SetScript("OnEditFocusGained", function() UI.SetBorderColor(border, THEME.ACCENT) end)
   box:SetScript("OnEditFocusLost", function(self)
     UI.SetBorderColor(border, THEME.BORDER)
     local r, g, b = FromHex(self:GetText())
@@ -234,20 +183,20 @@ local function CreateHexBox(parent)
     local r, g, b = FromHex(self:GetText())
     if r then SetColor(r, g, b, true, true) end
   end)
-  UI.AddTooltip(box, L("picker_tip_hex"))
+  UI.AddTooltip(box, L("picker_tip_hex"), L("picker_name_hex"))
   return box
 end
 
 local function CreatePreset(parent, token, index)
   local color = RAID_CLASS_COLORS and RAID_CLASS_COLORS[token]
   if not color then return end
-  local column = (index - 1) % LAYOUT.PRESET_COLUMNS
-  local row = math.floor((index - 1) / LAYOUT.PRESET_COLUMNS)
+  local column = (index - 1) % PICKER.PRESET_COLUMNS
+  local row = math.floor((index - 1) / PICKER.PRESET_COLUMNS)
   local button = CreateFrame("Button", nil, parent)
-  button:SetSize(LAYOUT.PRESET, LAYOUT.PRESET)
+  button:SetSize(PICKER.PRESET, PICKER.PRESET)
   button:SetPoint("TOPLEFT", parent, "TOPLEFT",
-    LAYOUT.MARGIN + column * (LAYOUT.PRESET + LAYOUT.PRESET_GAP),
-    parent.PresetTop - row * (LAYOUT.PRESET + LAYOUT.PRESET_GAP))
+    PICKER.MARGIN + column * (PICKER.PRESET + PICKER.PRESET_GAP),
+    parent.PresetTop - row * (PICKER.PRESET + PICKER.PRESET_GAP))
   button.r, button.g, button.b = color.r, color.g, color.b
   button.Fill = button:CreateTexture(nil, "ARTWORK")
   button.Fill:SetPoint("TOPLEFT", button, "TOPLEFT", 2, -2)
@@ -256,63 +205,55 @@ local function CreatePreset(parent, token, index)
   button.Border = UI.AddBorder(button, THEME.BORDER)
   button:SetScript("OnClick", function() SetColor(button.r, button.g, button.b, true) end)
   local names = LOCALIZED_CLASS_NAMES_MALE or {}
-  UI.AddTooltip(button, L("picker_tip_preset"):format(names[token] or token))
+  UI.AddTooltip(button, L("picker_tip_preset"), names[token] or token)
   presetButtons[#presetButtons + 1] = button
 end
 
 local function BuildTitleBar()
-  local bar = CreateFrame("Frame", nil, picker)
-  bar:SetPoint("TOPLEFT", picker, "TOPLEFT", 1, -1)
-  bar:SetPoint("TOPRIGHT", picker, "TOPRIGHT", -1, -1)
-  bar:SetHeight(LAYOUT.TITLE - 1)
-  local background = bar:CreateTexture(nil, "BACKGROUND")
-  background:SetAllPoints(bar)
-  background:SetColorTexture(unpack(THEME.TITLE))
-  local line = bar:CreateTexture(nil, "ARTWORK")
-  line:SetColorTexture(THEME.GOLD[1], THEME.GOLD[2], THEME.GOLD[3], 0.55)
-  line:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", 0, 0)
-  line:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 0, 0)
-  UI.OnePixel(line, true)
+  local bar = UI.CreateHeaderBand(picker, PICKER.TITLE - 3)
   controls.title = bar:CreateFontString(nil, "OVERLAY", "GroupHighlightFontNormal")
   controls.title:SetPoint("LEFT", bar, "LEFT", 12, 0)
-  controls.title:SetTextColor(unpack(THEME.GOLD))
+  controls.title:SetTextColor(unpack(THEME.TITLE_TEXT))
   controls.title:SetText(L("picker_title"))
 
-  -- The new colour and its hex code sit on the right of the title bar.
+  -- The new colour and its hex code sit on the right of the header band.
   controls.hex = CreateHexBox(bar)
   controls.hex:SetPoint("RIGHT", bar, "RIGHT", -8, 0)
   controls.new = UI.CreateSwatch(bar)
-  controls.new:SetSize(20, 20)
+  controls.new:SetSize(18, 18)
   controls.new:SetPoint("RIGHT", controls.hex, "LEFT", -6, 0)
   controls.new:EnableMouse(false)
 end
-
 local function Build()
   -- The window is exactly as wide as one row with every class colour.
   local total = 0
   for _, token in ipairs(CLASS_TOKENS) do
     if RAID_CLASS_COLORS and RAID_CLASS_COLORS[token] then total = total + 1 end
   end
-  LAYOUT.PRESET_COLUMNS = math.max(total, 1)
-  LAYOUT.CONTENT_WIDTH = LAYOUT.PRESET_COLUMNS * LAYOUT.PRESET + (LAYOUT.PRESET_COLUMNS - 1) * LAYOUT.PRESET_GAP
-  LAYOUT.WIDTH = LAYOUT.CONTENT_WIDTH + LAYOUT.MARGIN * 2
+  PICKER.PRESET_COLUMNS = math.max(total, 1)
+  PICKER.CONTENT_WIDTH = PICKER.PRESET_COLUMNS * PICKER.PRESET + (PICKER.PRESET_COLUMNS - 1) * PICKER.PRESET_GAP
+  PICKER.WIDTH = PICKER.CONTENT_WIDTH + PICKER.MARGIN * 2
 
   picker = CreateFrame("Frame", WINDOW_NAME, UIParent)
-  picker:SetSize(LAYOUT.WIDTH, 300)
+  picker:SetSize(PICKER.WIDTH, 300)
   picker:SetFrameStrata("DIALOG")
   picker:SetToplevel(true)
   picker:EnableMouse(true)
-  local background = picker:CreateTexture(nil, "BACKGROUND")
-  background:SetAllPoints(picker)
-  background:SetColorTexture(unpack(THEME.WINDOW))
-  UI.AddBorder(picker, THEME.BORDER)
+  UI.StyleWindow(picker)
   BuildTitleBar()
 
-  local y = -(LAYOUT.TITLE + 12)
+  local y = -(PICKER.TITLE + 8)
   controls.field = CreateField(picker, y)
-  y = y - LAYOUT.FIELD_HEIGHT - 8
+  y = y - PICKER.FIELD_HEIGHT - 6
   controls.hue = CreateHueBar(picker, y)
-  y = y - LAYOUT.HUE_HEIGHT - 10
+  y = y - PICKER.HUE_HEIGHT - 8
+
+  -- the class colours sit on a faint band, like a row of the party table
+  local band = picker:CreateTexture(nil, "BACKGROUND")
+  band:SetColorTexture(1, 1, 1, 0.035)
+  band:SetPoint("TOPLEFT", picker, "TOPLEFT", PICKER.MARGIN - 4, y + 3)
+  band:SetPoint("TOPRIGHT", picker, "TOPRIGHT", -(PICKER.MARGIN - 4), y + 3)
+  band:SetHeight(PICKER.PRESET + 6)
 
   picker.PresetTop = y
   local index = 0
@@ -322,53 +263,65 @@ local function Build()
       CreatePreset(picker, token, index)
     end
   end
-  local rows = math.ceil(index / LAYOUT.PRESET_COLUMNS)
-  y = y - rows * (LAYOUT.PRESET + LAYOUT.PRESET_GAP) - 6
+  local rows = math.ceil(index / PICKER.PRESET_COLUMNS)
+  y = y - rows * (PICKER.PRESET + PICKER.PRESET_GAP) - 2
 
-  picker:SetHeight(-y + LAYOUT.FOOTER)
+  picker:SetHeight(-y + PICKER.FOOTER)
   local footer = picker:CreateTexture(nil, "ARTWORK")
   footer:SetColorTexture(unpack(THEME.LINE))
-  footer:SetPoint("BOTTOMLEFT", picker, "BOTTOMLEFT", LAYOUT.MARGIN, LAYOUT.FOOTER)
-  footer:SetPoint("BOTTOMRIGHT", picker, "BOTTOMRIGHT", -LAYOUT.MARGIN, LAYOUT.FOOTER)
+  footer:SetPoint("BOTTOMLEFT", picker, "BOTTOMLEFT", PICKER.MARGIN, PICKER.FOOTER)
+  footer:SetPoint("BOTTOMRIGHT", picker, "BOTTOMRIGHT", -PICKER.MARGIN, PICKER.FOOTER)
   UI.OnePixel(footer, true)
-  local cancel = UI.CreateButton(picker, L("picker_cancel"), 100, false, function() picker:Hide() end)
-  cancel:SetPoint("BOTTOMLEFT", picker, "BOTTOMLEFT", LAYOUT.MARGIN, 11)
-  local okay = UI.CreateButton(picker, L("picker_okay"), 100, true, function()
+  local cancel = UI.FlatChip(picker, L("picker_cancel"), 80, false, function() picker:Hide() end)
+  cancel:SetPoint("BOTTOMLEFT", picker, "BOTTOMLEFT", PICKER.MARGIN, 7)
+  cancel:SetHeight(22)
+  local okay = UI.FlatChip(picker, L("picker_okay"), 80, true, function()
     state.accepted = true
     picker:Hide()
   end)
-  okay:SetPoint("BOTTOMRIGHT", picker, "BOTTOMRIGHT", -LAYOUT.MARGIN, 11)
+  okay:SetPoint("BOTTOMRIGHT", picker, "BOTTOMRIGHT", -PICKER.MARGIN, 7)
+  okay:SetHeight(22)
 
   -- Closing in any way other than Okay puts back what the player had.
   picker:SetScript("OnHide", function()
     if not state.accepted and state.name then
       local original = state.original
       if original then
-        GroupHighlight.SetMemberColor(state.name, original.r, original.g, original.b)
+        GH.SetMemberColor(state.name, original.r, original.g, original.b)
       else
-        GroupHighlight.SetMemberColor(state.name)
+        GH.SetMemberColor(state.name)
       end
     end
-    GroupHighlight.SetPreviewMember(nil)
+    GH.SetPreviewMember(nil)
   end)
   tinsert(UISpecialFrames, WINDOW_NAME)
+  UI.ApplyOutline(picker)
   picker:Hide()
 end
 
--- The picker is fixed to the editor, on its right side or, when there is no room, its left side.
-function GroupHighlight.RepositionColorPicker()
+-- The picker is fixed to the editor, on its right side or, when there is no room, its left side. Its bottom is
+-- level with the bottom of the party table (kept inside the editor), so it sits next to the table.
+function GH.RepositionColorPicker()
   if not picker then return end
   local editor = _G.GroupHighlightEditor
   picker:ClearAllPoints()
   if not editor then
     picker:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-  elseif (editor:GetRight() or 0) + LAYOUT.WIDTH + 8 > (UIParent:GetRight() or 0) then
-    picker:SetPoint("TOPRIGHT", editor, "TOPLEFT", -8, 0)
+    return
+  end
+  local party = S.boxes and S.boxes.party
+  local lift = 0
+  if party and party:GetBottom() and editor:GetBottom() then
+    lift = math.max(0, party:GetBottom() - editor:GetBottom())
+  end
+  lift = math.min(lift, math.max(0, (UIParent:GetTop() or 0) - (editor:GetBottom() or 0) - picker:GetHeight()))
+  if (editor:GetRight() or 0) + PICKER.WIDTH + 8 > (UIParent:GetRight() or 0) then
+    picker:SetPoint("BOTTOMRIGHT", editor, "BOTTOMLEFT", -8, lift)
   else
-    picker:SetPoint("TOPLEFT", editor, "TOPRIGHT", 8, 0)
+    picker:SetPoint("BOTTOMLEFT", editor, "BOTTOMRIGHT", 8, lift)
   end
 end
-function GroupHighlight.OpenColorPicker(name, unit)
+function GH.OpenColorPicker(name, unit)
   local options = GetOptions()
   if not options or not name then return end
   if not picker then Build() end
@@ -381,12 +334,12 @@ function GroupHighlight.OpenColorPicker(name, unit)
   state.original = stored and { r = stored.r, g = stored.g, b = stored.b } or nil
   local r, g, b
   if stored then r, g, b = stored.r, stored.g, stored.b else r, g, b = UI.GetClassColor(unit) end
-  GroupHighlight.SetPreviewMember(name, unit)
+  GH.SetPreviewMember(name, unit)
   SetColor(r, g, b, false)
-  GroupHighlight.RepositionColorPicker()
+  GH.RepositionColorPicker()
   picker:Show()
 end
 
-function GroupHighlight.CloseColorPicker()
+function GH.CloseColorPicker()
   if picker and picker:IsShown() then picker:Hide() end
 end

@@ -1,94 +1,73 @@
--- Small flat widgets shared by the editor and the color picker.
-GroupHighlight = GroupHighlight or {}
-
-local UI = {}
-GroupHighlight.UI = UI
-
-UI.WHITE = "Interface\\Buttons\\WHITE8X8"
-
-UI.THEME = {
-  GOLD = { 1, 0.82, 0, 1 },
-  WINDOW = { 0.06, 0.06, 0.07, 0.96 },
-  TITLE = { 0.11, 0.11, 0.12, 1 },
-  BORDER = { 0.32, 0.32, 0.35, 1 },
-  LINE = { 0.25, 0.25, 0.28, 1 },
-  INSET = { 0.1, 0.1, 0.11, 1 },
-  BUTTON = { 0.14, 0.14, 0.16, 0.95 },
-  BUTTON_ON = { 0.26, 0.2, 0.04, 0.95 },
-  TRACK = { 0.2, 0.2, 0.23, 1 },
-}
+-- The small flat parts: window frame, header band, close cross, switch, button and colour swatch.
+local GH = GroupHighlight
+local UI = GH.UI
 local THEME = UI.THEME
 
--- GroupHighlight's own fonts: Expressway (in Media), with the size, colour and shadow of the
--- game font each one replaces. Use them by name, e.g. CreateFontString(nil, "OVERLAY",
--- "GroupHighlightFontHighlight") instead of the game's GameFontHighlight.
-UI.FONT = "Interface\\AddOns\\GroupHighlight\\Media\\Expressway.ttf"
-for _, suffix in ipairs({ "Normal", "Highlight", "NormalSmall", "HighlightSmall", "NormalLarge", "NormalHuge", "Disable" }) do
-  local template = _G["GameFont" .. suffix]
-  if template then
-    local font = CreateFont("GroupHighlightFont" .. suffix)
-    font:CopyFontObject(template)
-    local _, size, flags = template:GetFont()
-    if not font:SetFont(UI.FONT, size or 12, flags or "") then
-      font:CopyFontObject(template) -- the file is missing: keep the game font
-    end
-  end
+-- A window frame: flat dark, a thin border and the blue line along the top.
+function UI.StyleWindow(frame)
+  local background = frame:CreateTexture(nil, "BACKGROUND")
+  background:SetAllPoints(frame)
+  background:SetColorTexture(unpack(THEME.WINDOW))
+  UI.AddBorder(frame, THEME.BORDER)
+  local accent = frame:CreateTexture(nil, "ARTWORK")
+  accent:SetPoint("TOPLEFT", frame, "TOPLEFT", 1, -1)
+  accent:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -1, -1)
+  accent:SetHeight(2)
+  accent:SetColorTexture(unpack(THEME.ACCENT))
 end
 
--- Makes a line exactly one screen pixel thick, whatever the UI scale. A plain height or
--- width of 1 can render as 0, 1 or 2 pixels, so lines looked uneven and corners didn't meet.
-function UI.OnePixel(line, horizontal)
-  line:SetTexelSnappingBias(0)
-  line:SetSnapToPixelGrid(false)
-  if PixelUtil then
-    if horizontal then PixelUtil.SetHeight(line, 1, 1) else PixelUtil.SetWidth(line, 1, 1) end
-  else
-    if horizontal then line:SetHeight(1) else line:SetWidth(1) end
-  end
+-- The dark blue header band under the blue line (3 pixels from the top of the window).
+function UI.CreateHeaderBand(parent, height)
+  local bar = CreateFrame("Frame", nil, parent)
+  bar:SetPoint("TOPLEFT", parent, "TOPLEFT", 1, -3)
+  bar:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -1, -3)
+  bar:SetHeight(height)
+  local background = bar:CreateTexture(nil, "BACKGROUND")
+  background:SetAllPoints(bar)
+  background:SetColorTexture(unpack(THEME.HEADER))
+  return bar
 end
 
-function UI.AddBorder(frame, color)
-  local function Edge(p1, p2, horizontal)
-    local line = frame:CreateTexture(nil, "BORDER")
-    line:SetColorTexture(unpack(color))
-    line:SetPoint(p1, frame, p1, 0, 0)
-    line:SetPoint(p2, frame, p2, 0, 0)
-    UI.OnePixel(line, horizontal)
-    return line
+-- A drawn cross: muted, bright under the mouse.
+function UI.CreateCloseButton(parent, onClick)
+  local close = CreateFrame("Button", nil, parent)
+  close:SetSize(24, 22)
+  local bars = {}
+  for _, angle in ipairs({ 45, -45 }) do
+    local bar = close:CreateTexture(nil, "ARTWORK")
+    bar:SetSize(11, 1.5)
+    bar:SetPoint("CENTER", close, "CENTER", 0, 0)
+    bar:SetRotation(math.rad(angle))
+    bars[#bars + 1] = bar
   end
-  return {
-    Edge("TOPLEFT", "TOPRIGHT", true),
-    Edge("BOTTOMLEFT", "BOTTOMRIGHT", true),
-    Edge("TOPLEFT", "BOTTOMLEFT", false),
-    Edge("TOPRIGHT", "BOTTOMRIGHT", false),
-  }
+  local function Paint(color)
+    for _, bar in ipairs(bars) do bar:SetColorTexture(color[1], color[2], color[3], 1) end
+  end
+  close:SetScript("OnEnter", function() Paint(THEME.BRIGHT) end)
+  close:SetScript("OnLeave", function() Paint(THEME.MUTED) end)
+  close:SetScript("OnClick", onClick)
+  Paint(THEME.MUTED)
+  return close
 end
 
--- A flat check box of our own (not Blizzard's): a dark square with a border and a gold
--- tick drawn from two bars. Works like a CheckButton: SetChecked, GetChecked, Click.
-function UI.CreateCheckbox(parent, onClick)
+---------------------------------------------------------------- switch, button, swatch
+-- A small on/off switch (a pill with a knob). Works like a CheckButton: SetChecked, GetChecked, Click.
+function UI.FlatSwitch(parent, onClick)
   local box = CreateFrame("Button", nil, parent)
-  box:SetSize(16, 16)
-  box.Back = box:CreateTexture(nil, "BACKGROUND")
-  box.Back:SetAllPoints(box)
-  box.Back:SetColorTexture(unpack(THEME.INSET))
-  box.Border = UI.AddBorder(box, THEME.BORDER)
-  -- The tick: a short bar down-right and a long bar up-right, meeting at the bottom.
-  box.Short = box:CreateTexture(nil, "ARTWORK")
-  box.Short:SetColorTexture(unpack(THEME.GOLD))
-  box.Short:SetSize(5, 2)
-  box.Short:SetPoint("CENTER", box, "CENTER", -3, -1)
-  box.Short:SetRotation(math.rad(-45))
-  box.Long = box:CreateTexture(nil, "ARTWORK")
-  box.Long:SetColorTexture(unpack(THEME.GOLD))
-  box.Long:SetSize(10, 2)
-  box.Long:SetPoint("CENTER", box, "CENTER", 1.5, 0.5)
-  box.Long:SetRotation(math.rad(45))
+  box:SetSize(26, 14)
+  box.Track = box:CreateTexture(nil, "BACKGROUND")
+  box.Track:SetAllPoints(box)
+  box.Knob = box:CreateTexture(nil, "ARTWORK")
+  box.Knob:SetSize(10, 10)
   function box:SetChecked(on)
     self.checked = on and true or false
-    self.Short:SetShown(self.checked)
-    self.Long:SetShown(self.checked)
-    UI.SetBorderColor(self.Border, (self.checked or self.hover) and THEME.GOLD or THEME.BORDER)
+    local c = self.checked and THEME.ACCENT or THEME.TRACK
+    local lift = self.hover and 0.08 or 0
+    self.Track:SetColorTexture(math.min(1, c[1] + lift), math.min(1, c[2] + lift), math.min(1, c[3] + lift), 1)
+    self.Knob:ClearAllPoints()
+    local side = self.checked and "RIGHT" or "LEFT"
+    self.Knob:SetPoint(side, self, side, self.checked and -2 or 2, 0)
+    if self.checked then self.Knob:SetColorTexture(0.08, 0.08, 0.1, 1) else self.Knob:SetColorTexture(0.72, 0.74, 0.8, 1) end
   end
   function box:GetChecked() return self.checked end
   box:SetScript("OnEnter", function(self) self.hover = true self:SetChecked(self.checked) end)
@@ -101,61 +80,47 @@ function UI.CreateCheckbox(parent, onClick)
   return box
 end
 
-function UI.SetBorderColor(lines, color)
-  for _, line in ipairs(lines) do
-    line:SetColorTexture(unpack(color))
-  end
-end
-
--- text can be a string or a function that returns one.
-function UI.AddTooltip(frame, text)
-  frame:HookScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText(type(text) == "function" and text() or text, nil, nil, nil, nil, true)
-    GameTooltip:Show()
-  end)
-  frame:HookScript("OnLeave", GameTooltip_Hide)
-end
-
--- A flat button; primary buttons get a gold edge.
-function UI.CreateButton(parent, text, width, primary, onClick, tooltipText)
+-- A flat button; a primary button has a blue edge and blue text.
+function UI.FlatChip(parent, text, width, primary, onClick, tooltipText)
   local button = CreateFrame("Button", nil, parent)
   button:SetSize(width, 28)
   button.Background = button:CreateTexture(nil, "BACKGROUND")
   button.Background:SetAllPoints(button)
-  button.Border = UI.AddBorder(button, primary and THEME.GOLD or THEME.BORDER)
-  button.Label = button:CreateFontString(nil, "OVERLAY", "GroupHighlightFontHighlight")
+  button.Border = UI.AddBorder(button, primary and THEME.ACCENT or THEME.BORDER)
+  button.Label = button:CreateFontString(nil, "OVERLAY", "GroupHighlightFontHighlightSmall")
   button.Label:SetPoint("CENTER", button, "CENTER", 0, 0)
   button.Label:SetText(text)
   local function Rest()
     button.Background:SetColorTexture(unpack(primary and THEME.BUTTON_ON or THEME.BUTTON))
-    if primary then button.Label:SetTextColor(unpack(THEME.GOLD)) else button.Label:SetTextColor(1, 1, 1, 1) end
+    button.Label:SetTextColor(unpack(primary and THEME.ON_TEXT or { 1, 1, 1, 1 }))
   end
   Rest()
   button:SetScript("OnEnter", function()
-    button.Background:SetColorTexture(0.24, 0.24, 0.28, 0.98)
-    UI.SetBorderColor(button.Border, THEME.GOLD)
+    button.Background:SetColorTexture(unpack(THEME.BUTTON_HOVER))
+    UI.SetBorderColor(button.Border, THEME.ACCENT)
   end)
   button:SetScript("OnLeave", function()
     Rest()
-    UI.SetBorderColor(button.Border, primary and THEME.GOLD or THEME.BORDER)
+    UI.SetBorderColor(button.Border, primary and THEME.ACCENT or THEME.BORDER)
   end)
   button:SetScript("OnMouseDown", function() button.Label:SetPoint("CENTER", button, "CENTER", 0, -1) end)
   button:SetScript("OnMouseUp", function() button.Label:SetPoint("CENTER", button, "CENTER", 0, 0) end)
   button:SetScript("OnClick", onClick)
-  if tooltipText then UI.AddTooltip(button, tooltipText) end
+  if tooltipText then UI.AddTooltip(button, tooltipText, text) end
   return button
 end
 
 function UI.CreateSwatch(parent, tooltipText)
   local swatch = CreateFrame("Button", nil, parent)
   swatch:SetSize(22, 22)
-  local border = swatch:CreateTexture(nil, "BACKGROUND")
-  border:SetAllPoints(swatch)
-  border:SetColorTexture(0.8, 0.8, 0.8, 1)
+  swatch.Edge = swatch:CreateTexture(nil, "BACKGROUND")
+  swatch.Edge:SetAllPoints(swatch)
+  swatch.Edge:SetColorTexture(unpack(THEME.GREY))
   swatch.Color = swatch:CreateTexture(nil, "ARTWORK")
   swatch.Color:SetPoint("TOPLEFT", swatch, "TOPLEFT", 2, -2)
   swatch.Color:SetPoint("BOTTOMRIGHT", swatch, "BOTTOMRIGHT", -2, 2)
+  swatch:SetScript("OnEnter", function(self) self.Edge:SetColorTexture(unpack(THEME.ACCENT)) end)
+  swatch:SetScript("OnLeave", function(self) self.Edge:SetColorTexture(unpack(THEME.GREY)) end)
   if tooltipText then UI.AddTooltip(swatch, tooltipText) end
   return swatch
 end

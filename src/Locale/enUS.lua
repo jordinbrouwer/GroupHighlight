@@ -1,15 +1,19 @@
+-- All texts of the addon (English).
 GroupHighlight = GroupHighlight or {}
 
 local enUS = {
   settings_category = "GroupHighlight",
   binding_toggle = "Turn the arrows on or off",
-  toggle_message = "GroupHighlight: %s.",
+  toggle_message = "Highlight: %s.",
   panel_description = "An arrow above your party and raid members.",
+  grip_title = "Resize window",
+  grip_label_drag = "Drag:",
+  grip_label_right = "Right-click:",
+  grip_tip_drag = "change the width and height of the window.",
+  grip_tip_reset = "go back to the default size.",
+  panel_hint = "or type /gh",
   panel_button_open = "Open GroupHighlight",
-  editor_close = "Close",
-  editor_defaults = "Reset to defaults",
-  editor_tip_defaults = "Reset all options to their defaults. Click twice: the first click asks to confirm.",
-  editor_reset_confirm = "Click again to reset",
+  editor_reset_confirm = "Click again",
   editor_reset = "Reset",
   editor_tip_reset_who = "Puts only these options back to their defaults: who gets an arrow, above yourself, above your target. Click twice.",
   editor_tip_reset_look = "Puts only the look back to its defaults: shape, filled, chevrons, arrow size and lift. Click twice.",
@@ -34,11 +38,19 @@ local enUS = {
   editor_tip_size = "Size of the arrow in pixels.",
   editor_tip_lift = "How high the arrow sits, in pixels. 1 is the lowest.",
   editor_no_party = "No party members to show.",
-  editor_tip_member = "Left-click to choose a colour. Right-click to go back to the class colour.",
-  picker_title = "Choose a colour",
+  party_col_name = "Name",
+  party_col_colour = "Colour",
+  tip_label_left = "Left-click:",
+  tip_label_right = "Right-click:",
+  tip_member_left = "choose a colour.",
+  tip_member_right = "go back to the class colour.",
+  picker_title = "Colour",
   picker_okay = "Okay",
   picker_cancel = "Cancel",
-  picker_tip_preset = "Use the %s colour.",
+  picker_name_field = "Shade",
+  picker_name_hue = "Hue",
+  picker_name_hex = "Hex code",
+  picker_tip_preset = "Use this class colour.",
   picker_tip_hex = "Type a colour as six hex digits, for example FF8800.",
   picker_tip_hue = "The basic colour.",
   picker_tip_field = "Click or drag to choose how strong and how light the colour is. Left is closer to white, the bottom is closer to black.",
@@ -52,18 +64,25 @@ local enUS = {
   option_ShowSelf = "Also above yourself",
   option_tip_ShowSelf = "Show the arrow above your own character as well.",
   option_ShowTarget = "Also above your target",
-  option_tip_ShowTarget = "Show the arrow above your current target as well. The arrow is attached to the nameplate, so it works on players and enemies, and on friendly NPCs when you have friendly NPC nameplates turned on in the game's nameplate settings. It does not work on units without a nameplate, like objects or units out of range. Your nameplate settings are never changed for this.",
+  option_tip_ShowTarget = "Also show the arrow above your target. It works on players, enemies and, with friendly nameplates on, friendly NPCs.",
   target_status = "Friendly NPC nameplates: %s",
-  target_status_on = "on in your game settings, so friendly NPCs get an arrow.",
-  target_status_off = "off in your game settings, so friendly NPCs get no arrow. Turn them on in the game's nameplate settings if you want that.",
-  target_status_unavailable = "not available in this version of the game, so friendly NPCs get no arrow.",
+  target_status_on = "on, so friendly NPCs get an arrow.",
+  target_status_off = "off in the game settings, so friendly NPCs get none.",
+  target_status_unavailable = "not in this game version, so friendly NPCs get none.",
 }
 
+-- GH.Loc("key") gives the text (or the key itself when it is missing); GH.Loc("key", a, b) fills in the %s parts.
+-- Other languages go in `locales`, with only the keys they change.
 local locales = { enUS = enUS }
 
-GroupHighlight.Loc = function(key)
+GroupHighlight.Loc = function(key, ...)
   local strings = locales[GetLocale()] or enUS
-  return strings[key] or enUS[key] or key
+  local text = strings[key] or enUS[key] or key
+  if select("#", ...) > 0 then
+    local ok, result = pcall(string.format, text, ...)
+    return ok and result or text
+  end
+  return text
 end
 
 -- Names in the key bindings screen (Options > Keybindings > AddOns).

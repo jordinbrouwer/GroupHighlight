@@ -3,6 +3,24 @@ Written by the release pipeline from the commits; see `CONTRIBUTING.md`.
 
 ## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.2.0...master)
 
+### Added
+- The editor can be resized: drag the grip in the bottom right corner to change its width and height, right-click it to go back to the default size. Wide, the sections sit in two columns; narrow, in one column with a thin scroll bar.
+- In a raid, Party colours lists everyone in the raid. With more than five names the list scrolls.
+- A hint "or type /gh" under the button on the settings page.
+
+### Changed
+- New look for the editor, the colour picker and the settings page in GroupHighlight's own gold and grey: a header band with the logo, the name and a short description (drag it to move the window), every section (Who gets an arrow, Look, Preview, Party colours) in its own box, switches instead of check boxes, flat buttons, the addon's own tooltips and a thin outline on all texts.
+- The key binding now shows a toast at the top of the screen ("Highlight: Off.") instead of a line in the chat. Click a toast to close it.
+- The amber warning about dungeons and raids moved from under the title bar to the bottom of the editor.
+- Reset next to each section title is now only an icon, without the word. The first click shows "Click again" in red.
+- Party colours is a table with Name and Colour columns.
+- The colour picker is called "Colour" and sits next to the editor at the height of the Party colours box.
+- Shorter tooltips, for example on Also above your target.
+- The code is split into smaller files; your settings are kept.
+
+### Removed
+- The Expressway font. The windows use the game's own fonts again.
+
 ## [1.2.0 (2026-11-19)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.2.0)
 
 ### Added

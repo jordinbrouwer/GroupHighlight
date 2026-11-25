@@ -2,7 +2,7 @@
 
 ## Title: GroupHighlight
 ## Notes: Put an arrow above your party and raid members, so you can find them in a crowd. One arrow per player, in their class colour or a colour you pick.
-## IconTexture: Interface\AddOns\GroupHighlight\GroupHighlight
+## IconTexture: Interface\AddOns\GroupHighlight\Media\Logo
 ## Version: @project-version@
 ## Author: Jordin
 ## X-Website: https://www.curseforge.com/wow/addons/group-highlight
@@ -11,11 +11,28 @@
 ## LoadOnDemand: 0
 ## SavedVariables: GroupHighlightDB
 
-Core/Locale.lua
+Locale/enUS.lua
+Core/Core.lua
+Core/Util.lua
 Core/Options.lua
+Core/Color.lua
+Core/Plates.lua
 Core/Highlight.lua
+UI/Base.lua
 UI/Widgets.lua
+UI/Tooltip.lua
+UI/Toast.lua
+UI/Controls.lua
+UI/Scroll.lua
+UI/WhoBox.lua
+UI/LookBox.lua
+UI/PreviewBox.lua
+UI/PartyBox.lua
+UI/WarningStrip.lua
+UI/Canvas.lua
+UI/Layout.lua
+UI/ColorMath.lua
 UI/ColorPicker.lua
-UI/Editor.lua
-UI/Settings.lua
-Core/Commands.lua
+UI/Window.lua
+UI/SettingsPage.lua
+Core/Command.lua
