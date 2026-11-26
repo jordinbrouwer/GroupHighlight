@@ -1,7 +1,12 @@
 # Changelog
 Written by the release pipeline from the commits; see `CONTRIBUTING.md`.
 
-## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.3.0...master)
+## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.3.1...master)
+
+## [1.3.1 (2026-11-26)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.3.1)
+
+### Fixed
+- Header text stays inside the window and ends with. ([18aad77](https://github.com/jordinbrouwer/GroupHighlight/commit/18aad77359d1dbb0c282031e0ff250b429854082))
 
 ## [1.3.0 (2026-11-25)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.3.0)
 
