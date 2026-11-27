@@ -22,11 +22,11 @@ local function PlaceBoxes(width)
   if width >= LAYOUT.TWO_COLUMNS_FROM then
     local x2 = x1 + LAYOUT.BOX_WIDTH + LAYOUT.COLUMN_GAP
     local y1 = Place(boxes.look, x1, Place(boxes.who, x1, -LAYOUT.TOP))
-    local y2 = Place(boxes.party, x2, Place(boxes.preview, x2, -LAYOUT.TOP))
+    local y2 = Place(boxes.members, x2, Place(boxes.preview, x2, -LAYOUT.TOP))
     endY = math.min(y1, y2)
   else
     endY = -LAYOUT.TOP
-    for _, name in ipairs({ "who", "look", "preview", "party" }) do endY = Place(boxes[name], x1, endY) end
+    for _, name in ipairs({ "who", "look", "preview", "members" }) do endY = Place(boxes[name], x1, endY) end
   end
   return -endY - BOX_GAP + LAYOUT.TOP
 end

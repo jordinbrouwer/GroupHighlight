@@ -61,16 +61,30 @@ local function BuildHeader(frame)
   title:SetText(GH.AddonName)
   local subtitle = bar:CreateFontString(nil, "OVERLAY", "GroupHighlightFontNormalSmall")
   subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -2)
-  -- stops left of the close button; a narrow window cuts the line off with "..."
+  -- stops left of the close button; a narrow window wraps it onto more lines (the band grows with it)
   subtitle:SetPoint("RIGHT", bar, "RIGHT", -40, 0)
   subtitle:SetJustifyH("LEFT")
-  subtitle:SetWordWrap(false)
+  subtitle:SetWordWrap(true)
   subtitle:SetTextColor(unpack(THEME.SUBTITLE_TEXT))
   local notes = (C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata(GH.AddonName, "Notes"))
     or (GetAddOnMetadata and GetAddOnMetadata(GH.AddonName, "Notes"))
   subtitle:SetText(notes and notes ~= "" and notes or L("panel_description"))
-  -- name and description together are centred on the logo
-  title:SetPoint("LEFT", bar, "LEFT", 56, (subtitle:GetStringHeight() + 2) / 2)
+  -- The band is as tall as the name and description need (with the same air above and below, at least the
+  -- default height), and the two are centred on the logo. LAYOUT.HEADER follows, as the window's height uses it.
+  local minH = LAYOUT.HEADER - 3
+  local function Fit()
+    title:SetPoint("LEFT", bar, "LEFT", 56, (subtitle:GetStringHeight() + 2) / 2)
+    local h = math.max(minH, math.ceil(title:GetStringHeight() + 2 + subtitle:GetStringHeight() + 14))
+    if math.abs(bar:GetHeight() - h) < 0.5 then return false end
+    bar:SetHeight(h)
+    LAYOUT.HEADER = h + 3
+    return true
+  end
+  Fit()
+  bar:SetScript("OnSizeChanged", function()
+    C_Timer.After(0, function() if Fit() then UI.Relayout() end end)
+  end)
+  S.headerBar = bar
 
   local close = UI.CreateCloseButton(bar, function() frame:Hide() end)
   close:SetPoint("TOPRIGHT", bar, "TOPRIGHT", -9, 0)
@@ -80,7 +94,7 @@ end
 -- Gives back the function that updates the bar.
 local function BuildScrollArea(frame)
   local scroll = CreateFrame("ScrollFrame", nil, frame)
-  scroll:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -LAYOUT.HEADER)
+  scroll:SetPoint("TOPLEFT", S.headerBar, "BOTTOMLEFT", -1, 0)   -- right under the band (it can grow)
   scroll:SetPoint("BOTTOMRIGHT", S.strip, "TOPRIGHT", 1, 0)   -- down to the band at the bottom (1 pixel inside the window)
   local content = CreateFrame("Frame", nil, scroll)
   content:SetSize(frame:GetWidth(), 300)
@@ -150,6 +164,8 @@ local function SetupShowing(frame, updateScrollBar)
   end)
   frame:SetScript("OnHide", function()
     GH.CloseColorPicker()
+    GH.CloseShapePicker()
+    UI.CloseMenu()
     UI.Tip.Hide()
   end)
   frame:RegisterEvent("GROUP_ROSTER_UPDATE")

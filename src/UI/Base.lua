@@ -11,9 +11,9 @@ UI.state = {
   scroll = nil,
   content = nil,
   strip = nil,
-  boxes = nil,           -- { who, look, preview, party }
-  firstMember = nil,     -- { name, unit } of the first name in the party list (the preview shows it)
-  previewMember = nil,   -- the member whose colour is being edited in the colour picker
+  boxes = nil,           -- { who, look, preview, members }
+  firstMember = nil,     -- { name, unit } of the first name in the members list (the preview shows it)
+  previewMember = nil,   -- the member being edited in the colour or shape picker
 }
 
 UI.WHITE = "Interface\\Buttons\\WHITE8X8"
@@ -60,7 +60,7 @@ UI.LAYOUT = {
   BOX_HEADER = 26,    -- the title row of a box (the title, and some air before the first row)
   BOX_TITLE_X = 8,    -- where the title sits (from the top left corner)
   BOX_TITLE_Y = -6,
-  MEMBER_ROWS = 5,    -- how many names the party list shows at most; more names scroll
+  MEMBER_ROWS = 5,    -- how many names the members list shows at most; more names scroll
 }
 local LAYOUT = UI.LAYOUT
 LAYOUT.BOX_WIDTH = LAYOUT.COLUMN + LAYOUT.BOX_INDENT * 2

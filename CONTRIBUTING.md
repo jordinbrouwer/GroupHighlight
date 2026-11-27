@@ -33,9 +33,9 @@ The load order is the file list in `src/GroupHighlight.toc`.
 - `src/UI/`: the windows. Every file takes its tools from the `UI` table.
   - `Base.lua`: the `UI` table, shared state, colours (`THEME`), sizes (`LAYOUT`), fonts and line helpers.
   - `Widgets.lua`, `Tooltip.lua`, `Toast.lua`, `Controls.lua`, `Scroll.lua`: the building blocks (window frame, header band, switch, button, swatch, tooltip, toasts, box, segment, slider, reset icon, scroll bar).
-  - `WhoBox.lua`, `LookBox.lua`, `PreviewBox.lua`, `PartyBox.lua`, `WarningStrip.lua`: one file per box of the editor, and the amber warning band.
+  - `WhoBox.lua`, `LookBox.lua`, `PreviewBox.lua`, `MembersBox.lua`, `WarningStrip.lua`: one file per box of the editor, and the amber warning band.
   - `Canvas.lua` builds the boxes and fills them from the settings; `Layout.lua` places them in one or two columns and sets the window height.
-  - `ColorMath.lua` and `ColorPicker.lua`: the colour picker.
+  - `ColorMath.lua` and `ColorPicker.lua`: the colour picker. `ShapePicker.lua`: the shape picker per party member (it reuses the shape controls of `LookBox.lua`).
   - `Window.lua`: the editor window (frame, header, scroll area, grip, opening and closing). `SettingsPage.lua`: the page under Settings > AddOns.
 - `src/Media/`: the addon's own `.tga` pictures.
 
@@ -43,6 +43,7 @@ Rules of thumb:
 
 - Colours and sizes live in `UI/Base.lua`, texts in `Locale/enUS.lua`, picture paths in `Core/Core.lua`.
 - A new setting goes in `Core/Options.lua` (its default and the section it belongs to), in the box where it shows (`UI/WhoBox.lua` or `UI/LookBox.lua`, in both the build and the sync function) and in the locale.
+- A new shape needs its picture in `Media/` (128×128, 32-bit TGA, white with a soft glow; an `...Outline` version when it can be an outline), an entry in `GH.Media` (`Core/Core.lua`), in `TEXTURES` and `GH.Shapes` (`Core/Highlight.lua`), and `shape_<key>` and `shape_tip_<key>` in the locale. The dropdown in Look picks it up by itself.
 - Renamed or removed settings are handled in `Migrate` in `Core/Options.lua`; raise `DB_VERSION` with them.
 
 ## Checks

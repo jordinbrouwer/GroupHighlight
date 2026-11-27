@@ -27,12 +27,13 @@ UI/Scroll.lua
 UI/WhoBox.lua
 UI/LookBox.lua
 UI/PreviewBox.lua
-UI/PartyBox.lua
+UI/MembersBox.lua
 UI/WarningStrip.lua
 UI/Canvas.lua
 UI/Layout.lua
 UI/ColorMath.lua
 UI/ColorPicker.lua
+UI/ShapePicker.lua
 UI/Window.lua
 UI/SettingsPage.lua
 Core/Command.lua

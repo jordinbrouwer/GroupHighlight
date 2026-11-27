@@ -3,10 +3,22 @@ Written by the release pipeline from the commits; see `CONTRIBUTING.md`.
 
 ## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.3.1...master)
 
+### Added
+- New arrow shapes: a diamond, a circle, a star, a map pin, a shield, a sword and a plus. The diamond, the circle, the star, the shield, the sword and the plus can be filled or drawn as an outline (an outline circle is a ring); the pin is solid or has a round hole.
+- A shape per party member: Members has a Look column. Left-click it to open the shape picker next to the editor (the same dropdown, options, Shape size and Lift above name as Look; Okay keeps, Cancel or Esc undoes), right-click to go back to the shape from Look. Members without their own shape follow Look; the preview shows the member you are editing.
+
+### Changed
+- In Look, the shape is picked from a dropdown with an icon per shape instead of a row of buttons.
+- The option Filled now works for every shape with an outline version, not only the triangle. Your setting is kept.
+- The box Party colours is now called Members.
+- The slider Arrow size is now called Shape size.
+- In the colour picker the new colour now sits at the far right of the title bar, with the hex code to its left.
+- Resetting Members also puts every member back on the shape from Look.
+
 ## [1.3.1 (2026-11-26)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.3.1)
 
 ### Fixed
-- Header text stays inside the window and ends with. ([18aad77](https://github.com/jordinbrouwer/GroupHighlight/commit/18aad77359d1dbb0c282031e0ff250b429854082))
+- The description in the header stays inside the window and ends with "..." when it doesn't fit. ([18aad77](https://github.com/jordinbrouwer/GroupHighlight/commit/18aad77359d1dbb0c282031e0ff250b429854082))
 
 ## [1.3.0 (2026-11-25)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.3.0)
 

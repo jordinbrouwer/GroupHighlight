@@ -1,5 +1,5 @@
--- The box "Party colours": a table with column headings and a row per group member (every second row has a faint
--- band): the name and a swatch that opens the colour picker. It is as high as the names need, up to MEMBER_ROWS; then it scrolls.
+-- The box "Members": a table with column headings and a row per group member (every second row has a faint
+-- band): the name, the shape (opens the shape picker) and a swatch that opens the colour picker. It is as high as the names need, up to MEMBER_ROWS; then it scrolls.
 local GH = GroupHighlight
 local UI = GH.UI
 local L = GH.Loc
@@ -14,8 +14,10 @@ local GOLD_CODE = "|cffffd100"   -- the gold of the addon, as a colour code (for
 local HEAD_H = 18        -- the column headings
 local BAND_EDGE = 4        -- the bands stick out this far on both sides of the text
 local LIST_WIDTH = LAYOUT.COLUMN + BAND_EDGE * 2
+-- The middle of the Shape and Colour columns, from the right edge of the list: heading and icon share that middle.
+local SHAPE_X, COLOUR_X = 68, 20
 
-local box, noPartyText
+local box, noMembersText
 local memberRows = {}
 local memberList, memberScroll, updateMemberBar   -- the scrolling list
 
@@ -56,11 +58,34 @@ local function CreateMemberRow()
   row.Label:SetPoint("LEFT", row, "LEFT", BAND_EDGE, 0)
   row.Swatch = CreateSwatch(row)
   row.Swatch:SetSize(LAYOUT.ROW_H - 4, LAYOUT.ROW_H - 4)   -- a little smaller than the row, so the swatches do not touch
-  row.Swatch:SetPoint("RIGHT", row, "RIGHT", -BAND_EDGE, 0)
+  row.Swatch:SetPoint("CENTER", row, "RIGHT", -(BAND_EDGE + COLOUR_X), 0)
   row.Swatch:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+  -- the shape, in the member's colour (their own shape, or the one from Look)
+  row.Shape = CreateFrame("Button", nil, row)
+  row.Shape:SetSize(LAYOUT.ROW_H - 2, LAYOUT.ROW_H - 2)
+  row.Shape:SetPoint("CENTER", row, "RIGHT", -(BAND_EDGE + SHAPE_X), 0)
+  row.Shape.Icon = row.Shape:CreateTexture(nil, "ARTWORK")
+  row.Shape.Icon:SetAllPoints(row.Shape)
+  row.Shape.Border = UI.AddBorder(row.Shape, THEME.ACCENT, 0)
+  row.Shape:SetScript("OnEnter", function(self) UI.SetBorderColor(self.Border, THEME.ACCENT) end)
+  row.Shape:SetScript("OnLeave", function(self) UI.SetBorderColor(self.Border, THEME.ACCENT, 0) end)
+  row.Shape:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+  row.Shape:SetScript("OnClick", function(_, button)
+    if not GetOptions() or not row.Name then return end
+    if button == "RightButton" then
+      GH.CloseShapePicker(true)   -- an open picker would otherwise undo the reset when it is cancelled
+      GH.SetMemberShape(row.Name)
+      return
+    end
+    GH.OpenShapePicker(row.Name, row.Unit)
+  end)
+  row.Label:SetPoint("RIGHT", row.Shape, "LEFT", -8, 0)
+  row.Label:SetJustifyH("LEFT")
+  row.Label:SetWordWrap(false)
   row.Swatch:SetScript("OnClick", function(_, button)
     if not GetOptions() or not row.Name then return end
     if button == "RightButton" then
+      GH.CloseColorPicker(true)   -- an open picker would otherwise undo the reset when it is cancelled
       GH.SetMemberColor(row.Name)
       return
     end
@@ -74,6 +99,10 @@ local function CreateMemberRow()
   end
   UI.AddTooltip(row, Tip, function() return row.Name end)
   UI.AddTooltip(row.Swatch, Tip, function() return row.Name end, row)
+  UI.AddTooltip(row.Shape, function()
+    return GOLD_CODE .. L("tip_label_left") .. "|r " .. L("tip_shape_left") .. "\n"
+      .. GOLD_CODE .. L("tip_label_right") .. "|r " .. L("tip_shape_right")
+  end, function() return row.Name end, row)
   UI.ApplyOutline(row)
   return row
 end
@@ -94,23 +123,28 @@ local function ShowMember(index, entry, options)
   end
   row.Label:SetTextColor(r, g, b)
   row.Swatch.Color:SetColorTexture(r, g, b)
+  row.Shape.Icon:SetTexture(GH.GetStyleTexture(entry.name))
+  row.Shape.Icon:SetVertexColor(r, g, b)
   row:Show()
 end
 
-function UI.BuildPartyBox(parent)
+function UI.BuildMembersBox(parent)
   local width = LAYOUT.COLUMN
-  box = CreateBox(parent, width, L("editor_section_party"), "colours")
-  noPartyText = box:CreateFontString(nil, "OVERLAY", "GroupHighlightFontDisable")
-  noPartyText:SetPoint("TOPLEFT", box, "TOPLEFT", BOX_INDENT, -(BOX_HEADER + HEAD_H + 4))
-  noPartyText:SetText(L("editor_no_party"))
+  box = CreateBox(parent, width, L("editor_section_members"), "members")
+  noMembersText = box:CreateFontString(nil, "OVERLAY", "GroupHighlightFontDisable")
+  noMembersText:SetPoint("TOPLEFT", box, "TOPLEFT", BOX_INDENT, -(BOX_HEADER + HEAD_H + 4))
+  noMembersText:SetText(L("editor_no_members"))
   -- the column headings and the line under them
   local nameHead = box:CreateFontString(nil, "OVERLAY", "GroupHighlightFontNormalSmall")
   nameHead:SetPoint("TOPLEFT", box, "TOPLEFT", BOX_INDENT, -(BOX_HEADER + 2))
   local colourHead = box:CreateFontString(nil, "OVERLAY", "GroupHighlightFontNormalSmall")
-  colourHead:SetPoint("TOPRIGHT", box, "TOPRIGHT", -BOX_INDENT, -(BOX_HEADER + 2))
-  for _, head in ipairs({ nameHead, colourHead }) do head:SetTextColor(unpack(THEME.MUTED)) end
-  nameHead:SetText(L("party_col_name"))
-  colourHead:SetText(L("party_col_colour"))
+  colourHead:SetPoint("TOP", box, "TOPRIGHT", -(BOX_INDENT + COLOUR_X), -(BOX_HEADER + 2))
+  local shapeHead = box:CreateFontString(nil, "OVERLAY", "GroupHighlightFontNormalSmall")
+  shapeHead:SetPoint("TOP", box, "TOPRIGHT", -(BOX_INDENT + SHAPE_X), -(BOX_HEADER + 2))
+  for _, head in ipairs({ nameHead, shapeHead, colourHead }) do head:SetTextColor(unpack(THEME.MUTED)) end
+  nameHead:SetText(L("members_col_name"))
+  shapeHead:SetText(L("members_col_look"))
+  colourHead:SetText(L("members_col_colour"))
   local headLine = box:CreateTexture(nil, "ARTWORK")
   headLine:SetColorTexture(1, 1, 1, 0.1)
   headLine:SetPoint("TOPLEFT", box, "TOPLEFT", BOX_INDENT - 4, -(BOX_HEADER + HEAD_H))
@@ -132,11 +166,11 @@ function UI.BuildPartyBox(parent)
 end
 
 -- Fills the list and sets the height of the box (the window places the boxes again afterwards).
-function UI.SyncPartyBox(options)
+function UI.SyncMembersBox(options)
   local entries = ListEntries(options)
   for index, entry in ipairs(entries) do ShowMember(index, entry, options) end
   for index = #entries + 1, #memberRows do memberRows[index]:Hide() end
-  noPartyText:SetShown(#entries == 0)
+  noMembersText:SetShown(#entries == 0)
   memberList:SetHeight(math.max(1, #entries * LAYOUT.ROW_H))
   local visible = math.min(math.max(#entries, 1), LAYOUT.MEMBER_ROWS)
   memberScroll:SetHeight(visible * LAYOUT.ROW_H)

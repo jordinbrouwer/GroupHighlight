@@ -39,3 +39,9 @@ local function GetColor(unit)
   return DEFAULT_COLOR[1], DEFAULT_COLOR[2], DEFAULT_COLOR[3]
 end
 GH.GetColor = GetColor
+
+-- The name (name-realm) a member's own colour and shape are kept under; read via the group token when possible.
+GH.GetMemberName = function(unit)
+  local name = GH.Safe(GetUnitName, GroupTokenFor(unit) or unit, true)
+  if name and not GH.IsSecret(name) then return name end
+end

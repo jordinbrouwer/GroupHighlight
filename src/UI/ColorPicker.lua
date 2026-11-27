@@ -216,13 +216,14 @@ local function BuildTitleBar()
   controls.title:SetTextColor(unpack(THEME.TITLE_TEXT))
   controls.title:SetText(L("picker_title"))
 
-  -- The new colour and its hex code sit on the right of the header band.
-  controls.hex = CreateHexBox(bar)
-  controls.hex:SetPoint("RIGHT", bar, "RIGHT", -8, 0)
+  -- The hex code and the new colour sit on the right of the header band; the colour at the far right, like the
+  -- chosen shape in the shape picker.
   controls.new = UI.CreateSwatch(bar)
   controls.new:SetSize(18, 18)
-  controls.new:SetPoint("RIGHT", controls.hex, "LEFT", -6, 0)
+  controls.new:SetPoint("RIGHT", bar, "RIGHT", -8, 0)
   controls.new:EnableMouse(false)
+  controls.hex = CreateHexBox(bar)
+  controls.hex:SetPoint("RIGHT", controls.new, "LEFT", -6, 0)
 end
 local function Build()
   -- The window is exactly as wide as one row with every class colour.
@@ -248,7 +249,7 @@ local function Build()
   controls.hue = CreateHueBar(picker, y)
   y = y - PICKER.HUE_HEIGHT - 8
 
-  -- the class colours sit on a faint band, like a row of the party table
+  -- the class colours sit on a faint band, like a row of the members table
   local band = picker:CreateTexture(nil, "BACKGROUND")
   band:SetColorTexture(1, 1, 1, 0.035)
   band:SetPoint("TOPLEFT", picker, "TOPLEFT", PICKER.MARGIN - 4, y + 3)
@@ -299,32 +300,37 @@ local function Build()
   picker:Hide()
 end
 
--- The picker is fixed to the editor, on its right side or, when there is no room, its left side. Its bottom is
--- level with the bottom of the party table (kept inside the editor), so it sits next to the table.
-function GH.RepositionColorPicker()
-  if not picker then return end
+-- A picker (colour or shape) is fixed to the editor, on its right side or, when there is no room, its left side. Its bottom
+-- is level with the bottom of the members table (kept inside the editor), so it sits next to the table.
+function UI.PlaceBesideEditor(frame)
   local editor = _G.GroupHighlightEditor
-  picker:ClearAllPoints()
+  frame:ClearAllPoints()
   if not editor then
-    picker:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     return
   end
-  local party = S.boxes and S.boxes.party
+  local members = S.boxes and S.boxes.members
   local lift = 0
-  if party and party:GetBottom() and editor:GetBottom() then
-    lift = math.max(0, party:GetBottom() - editor:GetBottom())
+  if members and members:GetBottom() and editor:GetBottom() then
+    lift = math.max(0, members:GetBottom() - editor:GetBottom())
   end
-  lift = math.min(lift, math.max(0, (UIParent:GetTop() or 0) - (editor:GetBottom() or 0) - picker:GetHeight()))
-  if (editor:GetRight() or 0) + PICKER.WIDTH + 8 > (UIParent:GetRight() or 0) then
-    picker:SetPoint("BOTTOMRIGHT", editor, "BOTTOMLEFT", -8, lift)
+  lift = math.min(lift, math.max(0, (UIParent:GetTop() or 0) - (editor:GetBottom() or 0) - frame:GetHeight()))
+  if (editor:GetRight() or 0) + frame:GetWidth() + 8 > (UIParent:GetRight() or 0) then
+    frame:SetPoint("BOTTOMRIGHT", editor, "BOTTOMLEFT", -8, lift)
   else
-    picker:SetPoint("BOTTOMLEFT", editor, "BOTTOMRIGHT", 8, lift)
+    frame:SetPoint("BOTTOMLEFT", editor, "BOTTOMRIGHT", 8, lift)
   end
+end
+
+function GH.RepositionColorPicker()
+  if picker then UI.PlaceBesideEditor(picker) end
+  if GH.RepositionShapePicker then GH.RepositionShapePicker() end
 end
 function GH.OpenColorPicker(name, unit)
   local options = GetOptions()
   if not options or not name then return end
   if not picker then Build() end
+  GH.CloseShapePicker(true)
   if picker:IsShown() then
     state.accepted = true
     picker:Hide()
@@ -340,6 +346,10 @@ function GH.OpenColorPicker(name, unit)
   picker:Show()
 end
 
-function GH.CloseColorPicker()
-  if picker and picker:IsShown() then picker:Hide() end
+-- keep: true keeps the changes (the shape picker opens instead), else they are undone like with Cancel.
+function GH.CloseColorPicker(keep)
+  if picker and picker:IsShown() then
+    state.accepted = keep or state.accepted
+    picker:Hide()
+  end
 end

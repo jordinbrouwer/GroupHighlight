@@ -9,10 +9,11 @@ GH.Defaults = {
   ShowSelf = false,
   ShowTarget = false,
   Shape = "triangle",
-  TriangleFilled = true,
+  Filled = true,
   ChevronCount = 2,
   ChevronFade = true,
   MemberColors = {},
+  MemberShapes = {},   -- name -> their own look (the LOOK_KEYS); a name without one follows Look
   ArrowSize = 32,
   Lift = 1,
 }
@@ -20,8 +21,8 @@ GH.Defaults = {
 -- The settings of each section of the window, so a section can be reset on its own.
 GH.Sections = {
   who = { "Mode", "ShowSelf", "ShowTarget" },
-  look = { "Shape", "TriangleFilled", "ChevronCount", "ChevronFade", "ArrowSize", "Lift" },
-  colours = { "MemberColors" },
+  look = { "Shape", "Filled", "ChevronCount", "ChevronFade", "ArrowSize", "Lift" },
+  members = { "MemberColors", "MemberShapes" },
 }
 
 local function CopyValue(value)
@@ -96,7 +97,30 @@ GH.SetMemberColor = function(name, r, g, b)
   NotifyChanged("MemberColors")
 end
 
--- Puts only the settings of one section ("who", "look" or "colours") back to their defaults.
+-- The settings of a look: in the options (Look) and in a member's own look.
+GH.LOOK_KEYS = { "Shape", "Filled", "ChevronCount", "ChevronFade", "ArrowSize", "Lift" }
+
+local function SameLook(a, b)
+  return GH.GetLookTexture(a) == GH.GetLookTexture(b) and a.ArrowSize == b.ArrowSize and a.Lift == b.Lift
+end
+
+-- name is the unit's full name; look holds the LOOK_KEYS. Passing no look, or one that looks the same as Look,
+-- goes back to following Look. exact stores the look as it is (undo puts back what was there).
+GH.SetMemberShape = function(name, look, exact)
+  local options = GetOptions()
+  if not options or not name then return end
+  if look and not exact and SameLook(look, options) then look = nil end
+  local copy
+  if look then
+    copy = {}
+    for _, key in ipairs(GH.LOOK_KEYS) do copy[key] = look[key] end
+  end
+  options.MemberShapes = options.MemberShapes or {}
+  options.MemberShapes[name] = copy
+  NotifyChanged("MemberShapes")
+end
+
+-- Puts only the settings of one section ("who", "look" or "members") back to their defaults.
 GH.ResetSection = function(section)
   local options = GetOptions()
   local keys = GH.Sections[section]
@@ -110,7 +134,7 @@ end
 
 ---------------------------------------------------------------- the saved file
 -- DB_VERSION goes up when settings are renamed or removed; the steps run once.
-local DB_VERSION = 2
+local DB_VERSION = 3
 
 -- Older versions had one Style setting; it is split into a shape and its options.
 local function MigrateStyle(options)
@@ -119,7 +143,7 @@ local function MigrateStyle(options)
   options.Style = nil
   if options.Shape ~= nil then return end
   if style == "outline" then
-    options.Shape, options.TriangleFilled = "triangle", false
+    options.Shape, options.Filled = "triangle", false
   elseif style == "chevron1" then
     options.Shape, options.ChevronCount = "chevron", 1
   elseif style == "chevron" or style == "chevron2" then
@@ -131,19 +155,37 @@ local function MigrateStyle(options)
   end
 end
 
+-- TriangleFilled became Filled when more shapes got an outline version.
+local function MigrateFilled(options)
+  if options.TriangleFilled == nil then return end
+  if options.Filled == nil then options.Filled = options.TriangleFilled end
+  options.TriangleFilled = nil
+end
+
 local function Migrate(options)
   if (options.DbVersion or 0) >= DB_VERSION then return end
   MigrateStyle(options)
+  MigrateFilled(options)
   options.DbVersion = DB_VERSION
 end
 
 -- Puts a value back to its default when it is not something the addon can use.
 local function Sanitize(options)
   local defaults = GH.Defaults
-  if options.Shape ~= "triangle" and options.Shape ~= "chevron" then options.Shape = defaults.Shape end
+  if not GH.ShapeInfo[options.Shape] then options.Shape = defaults.Shape end
+  if options.Lift == nil or options.Lift < 1 or options.Lift > 60 then options.Lift = defaults.Lift end
+  if type(options.ArrowSize) ~= "number" then options.ArrowSize = defaults.ArrowSize end
+  if type(options.MemberShapes) ~= "table" then options.MemberShapes = {} end
+  for name, look in pairs(options.MemberShapes) do
+    if type(look) ~= "table" or not GH.ShapeInfo[look.Shape] then
+      options.MemberShapes[name] = nil
+    else
+      if type(look.ArrowSize) ~= "number" then look.ArrowSize = options.ArrowSize end
+      if type(look.Lift) ~= "number" or look.Lift < 1 or look.Lift > 60 then look.Lift = options.Lift end
+    end
+  end
   local count = options.ChevronCount
   if type(count) ~= "number" or count < 1 or count > 3 then options.ChevronCount = defaults.ChevronCount end
-  if options.Lift == nil or options.Lift < 1 or options.Lift > 60 then options.Lift = defaults.Lift end
   if not GH.IsValidMode(options.Mode) then options.Mode = defaults.Mode end
 end
 

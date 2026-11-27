@@ -1,10 +1,10 @@
--- What the boxes are made of: the box (title, reset icon), a row with a switch, a row of buttons (a segment), a slider.
+-- What the boxes are made of: the box (title, reset icon), a row with a switch, a row of buttons (a segment),
+-- a dropdown, a slider.
 local GH = GroupHighlight
 local UI = GH.UI
 local L = GH.Loc
-local GetOptions = GH.GetOptions
 local LAYOUT, THEME = UI.LAYOUT, UI.THEME
-local AddBorder, SetBorderColor, AddTooltip = UI.AddBorder, UI.SetBorderColor, UI.AddTooltip
+local AddBorder, SetBorderColor, AddTooltip, Tip = UI.AddBorder, UI.SetBorderColor, UI.AddTooltip, UI.Tip
 local WHITE = UI.WHITE
 local BOX_INDENT, BOX_BOTTOM = LAYOUT.BOX_INDENT, LAYOUT.BOX_BOTTOM
 
@@ -165,7 +165,134 @@ local function CreateSegment(parent, x, y, width, height, entries, onSelect, lab
   return segment
 end
 
-local function CreateSlider(parent, x, y, width, key, minValue, maxValue, labelKey, tipKey)
+-- A dropdown: a button with the icon and name of the chosen entry; a click opens a list with every entry under it.
+-- Click an entry to pick it, click anywhere else to close. entries: { key, label, tip, icon, hint }; hint is
+-- quiet text on the right of the row in the list, e.g. the options the entry has.
+local menu, catcher
+local function CloseMenu()
+  if menu then menu:Hide() end
+  if catcher then catcher:Hide() end
+end
+
+local MENU_ROW = 26
+local function BuildMenu()
+  catcher = CreateFrame("Button", nil, UIParent)
+  catcher:SetFrameStrata("FULLSCREEN_DIALOG")
+  catcher:SetAllPoints(UIParent)
+  catcher:RegisterForClicks("AnyUp")
+  catcher:SetScript("OnClick", CloseMenu)
+  -- the wheel would otherwise scroll the editor under the menu, leaving the menu behind
+  catcher:EnableMouseWheel(true)
+  catcher:SetScript("OnMouseWheel", CloseMenu)
+  menu = CreateFrame("Frame", nil, UIParent)
+  menu:SetFrameStrata("FULLSCREEN_DIALOG")
+  menu:SetFrameLevel(catcher:GetFrameLevel() + 10)
+  menu:SetClampedToScreen(true)
+  menu:EnableMouse(true)
+  local background = menu:CreateTexture(nil, "BACKGROUND")
+  background:SetAllPoints(menu)
+  background:SetColorTexture(unpack(THEME.TIP_BG))
+  AddBorder(menu, THEME.ACCENT)
+  menu.rows = {}
+end
+
+local function MenuRow(index)
+  local row = menu.rows[index]
+  if row then return row end
+  row = CreateFrame("Button", nil, menu)
+  row:SetHeight(MENU_ROW)
+  row.Background = row:CreateTexture(nil, "BACKGROUND")
+  row.Background:SetAllPoints(row)
+  row.Icon = row:CreateTexture(nil, "ARTWORK")
+  row.Icon:SetSize(20, 20)
+  row.Icon:SetPoint("LEFT", row, "LEFT", 8, 0)
+  row.Icon:SetVertexColor(unpack(THEME.ACCENT))
+  row.Label = row:CreateFontString(nil, "OVERLAY", "GroupHighlightFontHighlightSmall")
+  row.Label:SetPoint("LEFT", row.Icon, "RIGHT", 8, 0)
+  row.Hint = row:CreateFontString(nil, "OVERLAY", "GroupHighlightFontHighlightSmall")
+  row.Hint:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+  row:SetScript("OnEnter", function(self)
+    if not self.Selected then self.Background:SetColorTexture(unpack(THEME.BUTTON_HOVER)) end
+    Tip.Show(self, "RIGHT", self.Label:GetText(), self.tip)
+  end)
+  row:SetScript("OnLeave", function(self)
+    if not self.Selected then self.Background:SetColorTexture(0, 0, 0, 0) end
+    Tip.Hide(self)
+  end)
+  menu.rows[index] = row
+  return row
+end
+
+local function OpenMenu(dropdown)
+  if not menu then BuildMenu() end
+  for index, entry in ipairs(dropdown.entries) do
+    local row = MenuRow(index)
+    row:ClearAllPoints()
+    row:SetPoint("TOPLEFT", menu, "TOPLEFT", 1, -1 - (index - 1) * MENU_ROW)
+    row:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -1, -1 - (index - 1) * MENU_ROW)
+    row.Icon:SetTexture(entry.icon)
+    row.Label:SetText(entry.label)
+    row.tip = entry.tip
+    row.Selected = entry.key == dropdown.selected
+    row.Background:SetColorTexture(unpack(row.Selected and THEME.BUTTON_ON or { 0, 0, 0, 0 }))
+    if row.Selected then row.Label:SetTextColor(unpack(THEME.ON_TEXT)) else row.Label:SetTextColor(1, 1, 1, 1) end
+    row.Hint:SetText(entry.hint or "")
+    row.Hint:SetTextColor(unpack(THEME.MUTED))
+    row.Hint:SetAlpha(row.Selected and 1 or 0.8)
+    row:SetScript("OnClick", function()
+      CloseMenu()
+      dropdown.onSelect(entry.key)
+    end)
+    row:Show()
+  end
+  for index = #dropdown.entries + 1, #menu.rows do menu.rows[index]:Hide() end
+  menu:SetSize(dropdown.button:GetWidth(), #dropdown.entries * MENU_ROW + 2)
+  menu:ClearAllPoints()
+  menu:SetPoint("TOPLEFT", dropdown.button, "BOTTOMLEFT", 0, -2)
+  catcher:Show()
+  menu:Show()
+end
+
+local function CreateDropdown(parent, x, y, width, height, entries, onSelect)
+  local dropdown = { entries = entries, onSelect = function(key) if not UI.state.syncing then onSelect(key) end end }
+  local button = CreateFrame("Button", nil, parent)
+  button:SetSize(width, height)
+  button:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
+  button.Background = button:CreateTexture(nil, "BACKGROUND")
+  button.Background:SetAllPoints(button)
+  button.Background:SetColorTexture(unpack(THEME.BUTTON))
+  button.Border = AddBorder(button, THEME.BORDER)
+  button.Icon = button:CreateTexture(nil, "ARTWORK")
+  button.Icon:SetSize(24, 24)
+  button.Icon:SetPoint("LEFT", button, "LEFT", 8, 0)
+  button.Icon:SetVertexColor(unpack(THEME.ACCENT))
+  button.Label = button:CreateFontString(nil, "OVERLAY", "GroupHighlightFontHighlightSmall")
+  button.Label:SetPoint("LEFT", button.Icon, "RIGHT", 8, 0)
+  button.Caret = button:CreateTexture(nil, "ARTWORK")
+  button.Caret:SetSize(12, 12)
+  button.Caret:SetPoint("RIGHT", button, "RIGHT", -10, 0)
+  button.Caret:SetTexture(GH.Media.Chevron1)
+  button.Caret:SetVertexColor(unpack(THEME.MUTED))
+  button:SetScript("OnEnter", function(self) SetBorderColor(self.Border, THEME.ACCENT) end)
+  button:SetScript("OnLeave", function(self) SetBorderColor(self.Border, THEME.BORDER) end)
+  button:SetScript("OnClick", function()
+    if menu and menu:IsShown() then CloseMenu() else OpenMenu(dropdown) end
+  end)
+  dropdown.button = button
+  function dropdown.SetSelected(key)
+    dropdown.selected = key
+    for _, entry in ipairs(entries) do
+      if entry.key == key then
+        button.Icon:SetTexture(entry.icon)
+        button.Label:SetText(entry.label)
+      end
+    end
+  end
+  return dropdown
+end
+
+-- onChange(key, value) is called when the player moves it.
+local function CreateSlider(parent, x, y, width, key, minValue, maxValue, labelKey, tipKey, onChange)
   local holder = CreateFrame("Frame", nil, parent)
   holder:SetSize(width, 40)
   holder:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
@@ -205,9 +332,7 @@ local function CreateSlider(parent, x, y, width, key, minValue, maxValue, labelK
   slider:SetScript("OnValueChanged", function(_, value)
     value = math.floor(value + 0.5)
     Show(value)
-    if not UI.state.syncing and GetOptions() and GetOptions()[key] ~= value then
-      GH.SetOption(key, value)
-    end
+    if not UI.state.syncing then onChange(key, value) end
   end)
   -- the whole row (the name, the value and the bar) shows the tooltip, hanging on the row
   holder:EnableMouse(true)
@@ -218,3 +343,4 @@ local function CreateSlider(parent, x, y, width, key, minValue, maxValue, labelK
 end
 
 UI.CreateBox, UI.FinishBox, UI.CreateCheckboxRow, UI.CreateSegment, UI.CreateSlider = CreateBox, FinishBox, CreateCheckboxRow, CreateSegment, CreateSlider
+UI.CreateDropdown, UI.CloseMenu = CreateDropdown, CloseMenu

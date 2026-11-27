@@ -24,12 +24,12 @@ function UI.BuildPreviewBox(parent)
   preview.Name = frame:CreateFontString(nil, "OVERLAY", "GroupHighlightFontNormalLarge")
   preview.Name:SetPoint("BOTTOM", frame, "BOTTOM", 0, 14)
   preview.Arrow = frame:CreateTexture(nil, "ARTWORK")
-  preview.Arrow:SetBlendMode("ADD")
+  preview.Arrow:SetBlendMode("BLEND")   -- the same as the arrows in the game
   FinishBox(box, -BOX_HEADER - LAYOUT.PREVIEW_HEIGHT)
   return box
 end
 
--- Shows the member being edited in the colour picker, else the first name in the list, else yourself.
+-- Shows the member being edited in the colour or shape picker, else the first name in the list, else yourself.
 function UI.UpdatePreview()
   local options = GetOptions()
   if not options or not preview then return end
@@ -46,10 +46,11 @@ function UI.UpdatePreview()
   end
   preview.Name:SetText(name)
   preview.Name:SetTextColor(r, g, b)
-  local size = options.ArrowSize or 32
-  local offset = (options.Lift or 1) + 3
+  local shown = member and member.name or GH.GetMemberName("player")
+  local size, lift = GH.GetMemberSize(shown)
+  local offset = lift + 3
   local scale = math.min(1, 84 / (size + offset))
-  preview.Arrow:SetTexture(GH.GetStyleTexture())
+  preview.Arrow:SetTexture(GH.GetStyleTexture(shown))
   preview.Arrow:SetVertexColor(r, g, b)
   preview.Arrow:SetSize(size * scale, size * scale)
   preview.Arrow:ClearAllPoints()

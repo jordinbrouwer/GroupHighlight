@@ -10,7 +10,7 @@ function UI.BuildCanvas(parent)
     who = UI.BuildWhoBox(parent),
     look = UI.BuildLookBox(parent),
     preview = UI.BuildPreviewBox(parent),
-    party = UI.BuildPartyBox(parent),
+    members = UI.BuildMembersBox(parent),
   }
   return S.boxes
 end
@@ -24,6 +24,6 @@ function UI.SyncEditor()
   UI.SyncLookBox(options)
   S.syncing = false
   -- The list first: the preview shows its first name.
-  UI.SyncPartyBox(options)
+  UI.SyncMembersBox(options)
   UI.UpdatePreview()
 end

@@ -10,13 +10,13 @@ Put an arrow above your party and raid members, so you can find them in a crowd.
 
 ### Editor
 
-<img src="docs/images/1-editor.png" alt="Editor: a header band with the logo, and boxes for who gets an arrow, the look, a preview and party colours, with the amber warning at the bottom." width="320">
+<img src="docs/images/1-editor.png" alt="Editor: a header band with the logo, and boxes for who gets an arrow, the look, a preview and the members, with the amber warning at the bottom." width="320">
 
 - `/gh` or `/grouphighlight`: open the editor. Type it again (or press Esc) to close it.
 - Drag the header band (with the logo and the name) to move the window. Everything you change shows up in the game world immediately, and the position of the window is kept.
-- The editor has four boxes: **Who gets an arrow**, **Look**, **Preview** and **Party colours**. Hover over any option for a tooltip.
+- The editor has four boxes: **Who gets an arrow**, **Look**, **Preview** and **Members**. Hover over any option for a tooltip.
 - **Who gets an arrow**: Off, Party (everyone in your party except yourself) or Party + Raid. **Also above yourself** and **Also above your target** are separate switches.
-- **Reset**: the boxes Who gets an arrow, Look and Party colours have a small reset icon next to their title that puts only that box back to its defaults. Click it twice: the first click shows **Click again** in red for three seconds.
+- **Reset**: the boxes Who gets an arrow, Look and Members have a small reset icon next to their title that puts only that box back to its defaults. Click it twice: the first click shows **Click again** in red for three seconds.
 - The amber band at the bottom says that arrows don't work above friendly players inside dungeons and raids.
 - Close the window with the cross in the header band.
 
@@ -30,26 +30,33 @@ Put an arrow above your party and raid members, so you can find them in a crowd.
 
 <img src="docs/images/2-look.png" alt="Look: a triangle (filled or outline) or one, two or three chevrons, with or without fading out." width="320">
 
-- A triangle (filled or outline) or one, two or three chevrons (with or without fading out).
-- **Arrow size** and **Lift above name** set how big the arrow is and how high it sits. The preview shows the result.
+- Pick a shape from the dropdown: a triangle, one, two or three chevrons (with or without fading out), a diamond, a circle, a star, a map pin, a shield, a sword or a plus. The triangle, diamond, circle, star, shield, sword and plus can be filled or an outline (an outline circle is a ring); the pin is solid or has a round hole.
+- **Shape size** and **Lift above name** set how big the shape is and how high it sits. The preview shows the result.
 
-### Party colours
+### Members
 
-<img src="docs/images/3-party-colours.png" alt="Party colours: a table with a name and a colour swatch per group member." width="320">
+<img src="docs/images/3-party-colours.png" alt="Members: a table with a name and a colour swatch per group member." width="320">
 
 - Arrows use the class colour by default.
 - The table lists your party (in a raid: everyone in the raid), with yourself only when **Also above yourself** is on. With more than five names it scrolls.
 - Left-click a swatch to open the colour picker for that player, right-click to go back to the class colour.
-- A chosen colour is remembered by name and realm.
+- The Look column gives a player their own shape: left-click to open the shape picker, right-click to go back to the shape from Look.
+- A chosen colour or shape is remembered by name and realm.
 
 ### Colour picker
 
-<img src="docs/images/4-colour-picker.png" alt="Colour picker: the colour and its hex code at the top, a colour field, a hue bar, presets, and Cancel and Okay." width="320">
+<img src="docs/images/4-colour-picker.png" alt="Colour picker: the hex code and the colour at the top, a colour field, a hue bar, presets, and Cancel and Okay." width="320">
 
-- The picker is fixed to the editor, next to it at the height of the Party colours table, and moves with it.
-- It has a colour field, a hue bar and a preset for every class. The new colour and its hex code are in its title bar; type six hex digits there, for example FF8800. The result shows in the game immediately.
+- The picker is fixed to the editor, next to it at the height of the Members table, and moves with it.
+- It has a colour field, a hue bar and a preset for every class. The hex code and the new colour (on the far right) are in its title bar; type six hex digits in the hex field, for example FF8800. The result shows in the game immediately.
 - **Okay** keeps the colour, **Cancel** or Esc puts the old one back.
 - Choosing exactly the class colour stores nothing, so the player keeps following their class.
+
+### Shape picker
+
+- Opens next to the editor, in the same place as the colour picker (only one of the two is open at a time).
+- The same dropdown, options, **Shape size** and **Lift above name** as Look. The result shows in the preview and in the game immediately.
+- **Okay** keeps the shape, **Cancel** or Esc puts the old one back. Choosing exactly the look from Look stores nothing, so the player keeps following Look.
 
 ### Key binding
 

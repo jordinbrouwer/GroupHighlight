@@ -13,23 +13,67 @@ local TEXTURES = {
   chevron2_solid = MEDIA.Chevron2Solid,
   chevron3_fade = MEDIA.Chevron3Fade,
   chevron3_solid = MEDIA.Chevron3Solid,
+  diamond_filled = MEDIA.Diamond,
+  diamond_outline = MEDIA.DiamondOutline,
+  circle_filled = MEDIA.Circle,
+  circle_outline = MEDIA.Ring,
+  star_filled = MEDIA.Star,
+  star_outline = MEDIA.StarOutline,
+  pin_filled = MEDIA.Pin,
+  pin_outline = MEDIA.PinHole,        -- not filled: the pin keeps its shape, with a round hole
+  shield_filled = MEDIA.Shield,
+  shield_outline = MEDIA.ShieldOutline,
+  sword_filled = MEDIA.Sword,
+  sword_outline = MEDIA.SwordOutline,
+  plus_filled = MEDIA.Plus,
+  plus_outline = MEDIA.PlusOutline,
 }
 GH.StyleTextures = TEXTURES
--- The texture that belongs to the chosen shape and its options.
-GH.GetStyleTexture = function()
-  local options = GetOptions()
-  if options and options.Shape == "chevron" then
-    local count = options.ChevronCount
+-- The shapes in the order of the list in the editor. outline: the shape can be drawn as an outline too (option Filled).
+GH.Shapes = {
+  { key = "triangle", outline = true },
+  { key = "chevron" },
+  { key = "diamond", outline = true },
+  { key = "circle", outline = true },
+  { key = "star", outline = true },
+  { key = "pin", outline = true },
+  { key = "shield", outline = true },
+  { key = "sword", outline = true },
+  { key = "plus", outline = true },
+}
+GH.ShapeInfo = {}
+for _, shape in ipairs(GH.Shapes) do GH.ShapeInfo[shape.key] = shape end
+
+-- The texture of a look: a table with Shape, Filled, ChevronCount and ChevronFade (the options, or a member's own look).
+local function TextureFor(look)
+  local shape = GH.ShapeInfo[look.Shape] and look.Shape or "triangle"
+  if shape == "chevron" then
+    local count = look.ChevronCount
     if count == 1 then return TEXTURES.chevron1 end
-    return TEXTURES[(count == 3 and "chevron3" or "chevron2") .. (options.ChevronFade == false and "_solid" or "_fade")]
+    return TEXTURES[(count == 3 and "chevron3" or "chevron2") .. (look.ChevronFade == false and "_solid" or "_fade")]
   end
-  return options and options.TriangleFilled == false and TEXTURES.triangle_outline or TEXTURES.triangle_filled
+  local outline = GH.ShapeInfo[shape].outline and look.Filled == false
+  return TEXTURES[shape .. (outline and "_outline" or "_filled")]
+end
+GH.GetLookTexture = TextureFor
+
+-- The look of a member (by name): their own, or else the one chosen in Look. nil before the settings are loaded.
+GH.GetMemberLook = function(name)
+  local options = GetOptions()
+  if not options then return nil end
+  return name and options.MemberShapes and options.MemberShapes[name] or options
 end
 
--- Lift 1 is the lowest position; every step moves the arrow up one pixel. There is no fixed offset.
-GH.GetLiftOffset = function()
-  local options = GetOptions()
-  return options and options.Lift or 1
+-- The texture of a member's look.
+GH.GetStyleTexture = function(name)
+  local look = GH.GetMemberLook(name)
+  return look and TextureFor(look) or TEXTURES.triangle_filled
+end
+
+-- The size of a member's shape and how high it sits above the name (Lift 1 is the lowest; every step is a pixel).
+GH.GetMemberSize = function(name)
+  local look = GH.GetMemberLook(name)
+  return look and look.ArrowSize or 32, look and look.Lift or 1
 end
 
 local SELF_BASE_HEIGHT = 2400
@@ -55,27 +99,26 @@ local function CreateArrow(parent)
   if frame.SetIgnoreParentAlpha then frame:SetIgnoreParentAlpha(true) end
   frame.Texture = frame:CreateTexture(nil, "OVERLAY")
   frame.Texture:SetAllPoints(frame)
-  frame.Texture:SetBlendMode("ADD")
+  frame.Texture:SetBlendMode("BLEND")   -- not ADD: that mixes in the ground, so the colour changed with the background
   return frame
 end
 
-local function ApplyTexture(frame)
-  local path = GH.GetStyleTexture()
+-- The member's texture and size; gives back how high the shape sits above its anchor.
+local function ApplyLook(frame, unit)
+  local name = GH.GetMemberName(unit)
+  local path = GH.GetStyleTexture(name)
   if frame.TexturePath ~= path then
     frame.TexturePath = path
     frame.Texture:SetTexture(path)
   end
+  local size, lift = GH.GetMemberSize(name)
+  frame:SetSize(size, size)
+  return lift
 end
 
 local function AcquireArrow(plate)
   local arrow = tremove(pool) or CreateArrow(plate)
-  local options = GetOptions()
-  local size = options and options.ArrowSize or 32
   arrow:SetParent(plate)
-  ApplyTexture(arrow)
-  arrow:ClearAllPoints()
-  arrow:SetSize(size, size)
-  arrow:SetPoint("BOTTOM", plate, "CENTER", 0, GH.GetLiftOffset())
   arrow:Show()
   return arrow
 end
@@ -98,6 +141,9 @@ local function UpdatePlate(plate, unit)
       arrow = AcquireArrow(plate)
       arrows[plate] = arrow
     end
+    local lift = ApplyLook(arrow, unit)
+    arrow:ClearAllPoints()
+    arrow:SetPoint("BOTTOM", plate, "CENTER", 0, lift)
     local colored, r, g, b = pcall(GetColor, unit)
     if not colored then r, g, b = DEFAULT_COLOR[1], DEFAULT_COLOR[2], DEFAULT_COLOR[3] end
     arrow.Texture:SetVertexColor(r, g, b)
@@ -116,12 +162,10 @@ local function UpdateSelfArrow()
     return
   end
   local zoom = GetCameraZoom and GetCameraZoom() or 10
-  local size = options.ArrowSize or 32
-  ApplyTexture(selfArrow)
-  selfArrow:SetSize(size, size)
+  local lift = ApplyLook(selfArrow, "player")
   selfArrow:ClearAllPoints()
   selfArrow:SetPoint("BOTTOM", UIParent, "CENTER", 0,
-    SELF_BASE_HEIGHT / math.max(zoom, 2) / 2 + GH.GetLiftOffset() - 20)
+    SELF_BASE_HEIGHT / math.max(zoom, 2) / 2 + lift - 20)
   selfArrow.Texture:SetVertexColor(GetColor("player"))
   selfArrow:Show()
 end
