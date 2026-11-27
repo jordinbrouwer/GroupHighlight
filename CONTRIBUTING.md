@@ -39,7 +39,6 @@ The load order is the file list in `src/GroupHighlight.toc`.
   - `ColorMath.lua` and `ColorPicker.lua`: the colour picker. `ShapePicker.lua`: the shape picker per party member (it reuses the shape controls of `LookBox.lua`).
   - `Window.lua`: the editor window (frame, header, scroll area, grip, opening and closing). `SettingsPage.lua`: the page under Settings > AddOns.
 - `src/Media/`: the addon's own `.tga` pictures.
-- `tests/`: checks that run outside the game, with Lua 5.1: `lua5.1 tests/drawing_test.lua`.
 
 Rules of thumb:
 
