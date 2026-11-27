@@ -1,7 +1,12 @@
 # Changelog
 Written by the release pipeline from the commits; see `CONTRIBUTING.md`.
 
-## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.4.0...master)
+## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.4.1...master)
+
+## [1.4.1 (2026-11-27)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.4.1)
+
+### Fixed
+- The header no longer cuts off the second line of its description when the window opens. ([8bf0f96](https://github.com/jordinbrouwer/GroupHighlight/commit/8bf0f966d90da4437fe3c10cf7f549a47407f768))
 
 ## [1.4.0 (2026-11-27)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.4.0)
 
