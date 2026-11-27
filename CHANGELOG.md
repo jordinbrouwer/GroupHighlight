@@ -3,13 +3,13 @@ Written by the release pipeline from the commits; see `CONTRIBUTING.md`.
 
 ## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.4.1...master)
 
+### Added
+- The shape Drawing: draw your own shape on a 16×16 grid in the preview (left-drag draws, right-drag erases, the reset icon of Preview empties it). Look has one drawing, and every member with their own shape can have their own.
+
 ## [1.4.1 (2026-11-27)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.4.1)
 
 ### Fixed
 - The header no longer cuts off the second line of its description when the window opens. ([8bf0f96](https://github.com/jordinbrouwer/GroupHighlight/commit/8bf0f966d90da4437fe3c10cf7f549a47407f768))
-
-### Added
-- The shape Drawing: draw your own shape on a 16×16 grid in the preview (left-drag draws, right-drag erases, the reset icon of Preview empties it). Look has one drawing, and every member with their own shape can have their own.
 
 ## [1.4.0 (2026-11-27)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.4.0)
 
