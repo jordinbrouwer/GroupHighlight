@@ -81,13 +81,13 @@ local function BuildHeader(frame)
     return true
   end
   Fit()
-  bar:SetScript("OnSizeChanged", function()
-    C_Timer.After(0, function() if Fit() then UI.Relayout() end end)
-  end)
+  local function FitLater() C_Timer.After(0, function() if Fit() then UI.Relayout() end end) end
+  bar:SetScript("OnSizeChanged", FitLater)
   S.headerBar = bar
 
   local close = UI.CreateCloseButton(bar, function() frame:Hide() end)
   close:SetPoint("TOPRIGHT", bar, "TOPRIGHT", -9, 0)
+  return FitLater
 end
 
 -- The scroll area between the header and the band at the bottom, with the content (the boxes) in it and a thin scroll bar.
@@ -179,11 +179,14 @@ end
 
 local function BuildWindow()
   local frame = BuildFrame()
-  BuildHeader(frame)
+  local fitHeader = BuildHeader(frame)
   UI.BuildWarningStrip(frame)
   local updateScrollBar = BuildScrollArea(frame)
   BuildGrip(frame)
   SetupShowing(frame, updateScrollBar)
+  -- measure the header again on every open (after SetupShowing, which sets OnShow): the first measure can come
+  -- before WoW has the width or the font, and then the description gets one line too few until the width changes
+  frame:HookScript("OnShow", fitHeader)
   UI.ApplyOutline(frame)
   frame:Hide()
 end
