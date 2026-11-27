@@ -12,6 +12,7 @@ GH.Defaults = {
   Filled = true,
   ChevronCount = 2,
   ChevronFade = true,
+  Drawing = GH.DEFAULT_DRAWING,   -- the shape Drawing (Core/Drawing.lua)
   MemberColors = {},
   MemberShapes = {},   -- name -> their own look (the LOOK_KEYS); a name without one follows Look
   ArrowSize = 32,
@@ -21,7 +22,7 @@ GH.Defaults = {
 -- The settings of each section of the window, so a section can be reset on its own.
 GH.Sections = {
   who = { "Mode", "ShowSelf", "ShowTarget" },
-  look = { "Shape", "Filled", "ChevronCount", "ChevronFade", "ArrowSize", "Lift" },
+  look = { "Shape", "Filled", "ChevronCount", "ChevronFade", "Drawing", "ArrowSize", "Lift" },
   members = { "MemberColors", "MemberShapes" },
 }
 
@@ -98,10 +99,11 @@ GH.SetMemberColor = function(name, r, g, b)
 end
 
 -- The settings of a look: in the options (Look) and in a member's own look.
-GH.LOOK_KEYS = { "Shape", "Filled", "ChevronCount", "ChevronFade", "ArrowSize", "Lift" }
+GH.LOOK_KEYS = { "Shape", "Filled", "ChevronCount", "ChevronFade", "Drawing", "ArrowSize", "Lift" }
 
 local function SameLook(a, b)
-  return GH.GetLookTexture(a) == GH.GetLookTexture(b) and a.ArrowSize == b.ArrowSize and a.Lift == b.Lift
+  return GH.GetLookTexture(a) == GH.GetLookTexture(b) and (a.Shape ~= "drawing" or a.Drawing == b.Drawing)
+    and a.ArrowSize == b.ArrowSize and a.Lift == b.Lift
 end
 
 -- name is the unit's full name; look holds the LOOK_KEYS. Passing no look, or one that looks the same as Look,
@@ -175,6 +177,7 @@ local function Sanitize(options)
   if not GH.ShapeInfo[options.Shape] then options.Shape = defaults.Shape end
   if options.Lift == nil or options.Lift < 1 or options.Lift > 60 then options.Lift = defaults.Lift end
   if type(options.ArrowSize) ~= "number" then options.ArrowSize = defaults.ArrowSize end
+  if not GH.IsValidDrawing(options.Drawing) then options.Drawing = defaults.Drawing end
   if type(options.MemberShapes) ~= "table" then options.MemberShapes = {} end
   for name, look in pairs(options.MemberShapes) do
     if type(look) ~= "table" or not GH.ShapeInfo[look.Shape] then
@@ -182,6 +185,7 @@ local function Sanitize(options)
     else
       if type(look.ArrowSize) ~= "number" then look.ArrowSize = options.ArrowSize end
       if type(look.Lift) ~= "number" or look.Lift < 1 or look.Lift > 60 then look.Lift = options.Lift end
+      if not GH.IsValidDrawing(look.Drawing) then look.Drawing = options.Drawing end
     end
   end
   local count = options.ChevronCount

@@ -31,6 +31,7 @@ Put an arrow above your party and raid members, so you can find them in a crowd.
 <img src="docs/images/2-look.png" alt="Look: a triangle (filled or outline) or one, two or three chevrons, with or without fading out." width="320">
 
 - Pick a shape from the dropdown: a triangle, one, two or three chevrons (with or without fading out), a diamond, a circle, a star, a map pin, a shield, a sword or a plus. The triangle, diamond, circle, star, shield, sword and plus can be filled or an outline (an outline circle is a ring); the pin is solid or has a round hole.
+- Or pick **Drawing** and draw your own shape in the preview: a 16×16 grid, left-drag draws, right-drag erases, the reset icon of Preview empties it. A player with their own look in the shape picker gets their own drawing.
 - **Shape size** and **Lift above name** set how big the shape is and how high it sits. The preview shows the result.
 
 ### Members

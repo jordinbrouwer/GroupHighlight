@@ -31,6 +31,7 @@ GH.Media = {
   SwordOutline = MEDIA_DIR .. "SwordOutline",
   Plus = MEDIA_DIR .. "Plus",
   PlusOutline = MEDIA_DIR .. "PlusOutline",
+  Pencil = MEDIA_DIR .. "Pencil",            -- the shape Drawing in the dropdown
 }
 
 -- The saved settings (nil until the game has loaded them).

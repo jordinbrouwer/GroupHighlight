@@ -29,7 +29,7 @@ local function Show()
   picker:SetHeight(PICKER.TITLE + 10 + controls.frame:GetHeight() + 10 + PICKER.FOOTER)
   -- a chevron makes it higher: place it again, so it stays on the screen
   if picker:IsShown() then UI.PlaceBesideEditor(picker) end
-  current:SetTexture(GH.GetLookTexture(state.look))
+  current.SetLook(state.look)
 end
 
 local function Change(key, value)
@@ -58,9 +58,10 @@ local function Build()
   background:SetAllPoints(frame)
   background:SetColorTexture(unpack(THEME.INSET))
   UI.AddBorder(frame, THEME.BORDER)
-  current = frame:CreateTexture(nil, "ARTWORK")
-  current:SetPoint("TOPLEFT", frame, "TOPLEFT", 2, -2)
-  current:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -2, 2)
+  local inner = CreateFrame("Frame", nil, frame)
+  inner:SetPoint("TOPLEFT", frame, "TOPLEFT", 2, -2)
+  inner:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -2, 2)
+  current = GH.CreateShapeView(inner, "ARTWORK")
 
   controls = UI.CreateShapeControls(picker, PICKER.MARGIN, -(PICKER.TITLE + 10), PICKER.CONTENT_WIDTH, Change)
   picker:SetWidth(PICKER.WIDTH)   -- the height follows the chosen shape (Show)
@@ -103,12 +104,18 @@ function GH.OpenShapePicker(name, unit)
   state.name, state.accepted = name, false
   state.original = own and CopyLook(own) or nil
   state.look = CopyLook(own or options)
-  current:SetVertexColor(GH.GetColor(unit))
+  current.SetColor(GH.GetColor(unit))
   GH.SetPreviewMember(name, unit)
   Show()
   UI.PlaceBesideEditor(picker)
   picker:Show()
 end
+
+-- The look being edited while the picker is open (the preview draws on it), and how to change it.
+function GH.GetPickerLook()
+  return picker and picker:IsShown() and state.look or nil
+end
+GH.SetPickerOption = function(key, value) Change(key, value) end
 
 function GH.RepositionShapePicker()
   if picker and picker:IsShown() then UI.PlaceBesideEditor(picker) end

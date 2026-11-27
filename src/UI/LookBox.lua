@@ -79,7 +79,8 @@ function UI.CreateShapeControls(parent, x, y, width, onChange)
     sizeSlider.Display(look.ArrowSize or 32)
     liftSlider:SetValue(look.Lift or 1)
     liftSlider.Display(look.Lift or 1)
-    local optionsH = -rowY + LAYOUT.ROW_H + (isChevron and LAYOUT.ROW_H + 6 or 0)
+    -- a drawing has no options: the sliders come right under the dropdown
+    local optionsH = look.Shape == "drawing" and -rowY - 8 or -rowY + LAYOUT.ROW_H + (isChevron and LAYOUT.ROW_H + 6 or 0)
     options:SetPoint("TOPLEFT", area, "TOPLEFT", 0, -optionsH + 1)
     area:SetHeight(optionsH + 8 + 44 + 40)
     UI.state.syncing = wasSyncing
