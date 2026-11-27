@@ -25,10 +25,11 @@ The load order is the file list in `src/GroupHighlight.toc`.
 - `src/Core/`: the addon without windows.
   - `Core.lua`: the shared `GroupHighlight` table, the picture paths (`GroupHighlight.Media`), `GetOptions` and `On("EVENT", fn)`, the one place that listens to game events.
   - `Util.lua`: reading units safely (`Safe`, `IsTrue`).
+  - `Drawing.lua`: the shape Drawing: 16×16 cells kept as 64 hex digits, and the runs of cells it is drawn with.
   - `Options.lua`: defaults, `SetOption`, resetting a section, and tidying the saved settings once (`Migrate`, `DB_VERSION`).
   - `Color.lua`: the colour of an arrow (the chosen colour, or the class colour).
   - `Plates.lua`: the friendly nameplates the arrows hang on, and the game settings (CVars) they need.
-  - `Highlight.lua`: the arrows: which units get one, where it sits and its picture.
+  - `Highlight.lua`: the arrows: which units get one, where it sits and its picture. `CreateShapeView` draws a look (a texture, or the stripes of a drawing) everywhere a shape shows.
   - `Command.lua`: `/gh` and `/grouphighlight`.
 - `src/UI/`: the windows. Every file takes its tools from the `UI` table.
   - `Base.lua`: the `UI` table, shared state, colours (`THEME`), sizes (`LAYOUT`), fonts and line helpers.
@@ -38,6 +39,7 @@ The load order is the file list in `src/GroupHighlight.toc`.
   - `ColorMath.lua` and `ColorPicker.lua`: the colour picker. `ShapePicker.lua`: the shape picker per party member (it reuses the shape controls of `LookBox.lua`).
   - `Window.lua`: the editor window (frame, header, scroll area, grip, opening and closing). `SettingsPage.lua`: the page under Settings > AddOns.
 - `src/Media/`: the addon's own `.tga` pictures.
+- `tests/`: checks that run outside the game, with Lua 5.1: `lua5.1 tests/drawing_test.lua`.
 
 Rules of thumb:
 

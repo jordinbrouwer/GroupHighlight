@@ -9,8 +9,8 @@ local WHITE = UI.WHITE
 local BOX_INDENT, BOX_BOTTOM = LAYOUT.BOX_INDENT, LAYOUT.BOX_BOTTOM
 
 -- The reset icon on the right of a title: grey, gold under the mouse. The first click asks "Click again"
--- (3 seconds, in red); the second click resets.
-local function AddReset(parent, section)
+-- (3 seconds, in red); the second click resets: the section's settings, or onReset() when given.
+local function AddReset(parent, section, onReset)
   local link = CreateFrame("Button", nil, parent)
   link:SetHeight(14)
   link.Icon = link:CreateTexture(nil, "ARTWORK")
@@ -45,7 +45,7 @@ local function AddReset(parent, section)
   end)
   link:SetScript("OnClick", function()
     if armedUntil and GetTime() < armedUntil then
-      GH.ResetSection(section)
+      if onReset then onReset() else GH.ResetSection(section) end
       Rest()
       return
     end
@@ -62,7 +62,7 @@ end
 
 -- A box: dark, a thin border, the title in the corner and the reset icon on the right. What is in it goes on the box
 -- (from BOX_INDENT, -BOX_HEADER); FinishBox sets its height. Layout.lua places the box.
-local function CreateBox(parent, width, titleText, resetSection)
+local function CreateBox(parent, width, titleText, resetSection, onReset)
   local box = CreateFrame("Frame", nil, parent)
   box:SetWidth(width + BOX_INDENT * 2)
   local background = box:CreateTexture(nil, "BACKGROUND")
@@ -74,7 +74,8 @@ local function CreateBox(parent, width, titleText, resetSection)
   box.Title:SetTextColor(unpack(THEME.ACCENT))
   box.Title:SetText(titleText)
   if resetSection then
-    AddReset(box, resetSection):SetPoint("TOPRIGHT", box, "TOPRIGHT", -5, -2)
+    box.Reset = AddReset(box, resetSection, onReset)
+    box.Reset:SetPoint("TOPRIGHT", box, "TOPRIGHT", -5, -2)
   end
   return box
 end

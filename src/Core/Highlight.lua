@@ -27,6 +27,7 @@ local TEXTURES = {
   sword_outline = MEDIA.SwordOutline,
   plus_filled = MEDIA.Plus,
   plus_outline = MEDIA.PlusOutline,
+  drawing_filled = MEDIA.Pencil,      -- only in the dropdown: a drawing is drawn as stripes (CreateShapeView)
 }
 GH.StyleTextures = TEXTURES
 -- The shapes in the order of the list in the editor. outline: the shape can be drawn as an outline too (option Filled).
@@ -40,6 +41,7 @@ GH.Shapes = {
   { key = "shield", outline = true },
   { key = "sword", outline = true },
   { key = "plus", outline = true },
+  { key = "drawing" },   -- drawn by the player in the preview
 }
 GH.ShapeInfo = {}
 for _, shape in ipairs(GH.Shapes) do GH.ShapeInfo[shape.key] = shape end
@@ -57,6 +59,58 @@ local function TextureFor(look)
 end
 GH.GetLookTexture = TextureFor
 
+-- A shape on screen in one colour, filling `frame`: the texture of a look, or for a drawing one stripe per run
+-- of cells (WoW cannot make a texture while the game runs). Gives back { SetLook(look), SetColor(r, g, b) }.
+GH.CreateShapeView = function(frame, layer)
+  local view = { stripes = {} }
+  local texture = frame:CreateTexture(nil, layer)
+  texture:SetAllPoints(frame)
+  local r, g, b = 1, 1, 1
+  local shownRuns = 0
+  local function Layout()
+    local cell = frame:GetWidth() / GH.DRAWING_SIZE
+    for index = 1, shownRuns do
+      local stripe = view.stripes[index]
+      stripe:SetPoint("TOPLEFT", frame, "TOPLEFT", stripe.x * cell, -stripe.y * cell)
+      stripe:SetSize(stripe.length * cell, cell)
+    end
+  end
+  frame:HookScript("OnSizeChanged", Layout)
+  function view.SetLook(look)
+    local drawing = look.Shape == "drawing" and look.Drawing
+    texture:SetShown(not drawing)
+    if not drawing then
+      local path = TextureFor(look)
+      if view.path ~= path then
+        view.path = path
+        texture:SetTexture(path)
+      end
+    end
+    if drawing == view.drawing then return end
+    view.drawing = drawing
+    local runs = drawing and GH.DrawingRuns(drawing) or {}
+    for index, run in ipairs(runs) do
+      local stripe = view.stripes[index]
+      if not stripe then
+        stripe = frame:CreateTexture(nil, layer)
+        stripe:SetColorTexture(r, g, b, 1)
+        view.stripes[index] = stripe
+      end
+      stripe.x, stripe.y, stripe.length = run[1], run[2], run[3]
+      stripe:Show()
+    end
+    for index = #runs + 1, #view.stripes do view.stripes[index]:Hide() end
+    shownRuns = #runs
+    Layout()
+  end
+  function view.SetColor(red, green, blue)
+    r, g, b = red, green, blue
+    texture:SetVertexColor(r, g, b)
+    for _, stripe in ipairs(view.stripes) do stripe:SetColorTexture(r, g, b, 1) end
+  end
+  return view
+end
+
 -- The look of a member (by name): their own, or else the one chosen in Look. nil before the settings are loaded.
 GH.GetMemberLook = function(name)
   local options = GetOptions()
@@ -64,10 +118,9 @@ GH.GetMemberLook = function(name)
   return name and options.MemberShapes and options.MemberShapes[name] or options
 end
 
--- The texture of a member's look.
-GH.GetStyleTexture = function(name)
-  local look = GH.GetMemberLook(name)
-  return look and TextureFor(look) or TEXTURES.triangle_filled
+-- A member's look, or the defaults before the settings are loaded.
+GH.GetShownLook = function(name)
+  return GH.GetMemberLook(name) or GH.Defaults
 end
 
 -- The size of a member's shape and how high it sits above the name (Lift 1 is the lowest; every step is a pixel).
@@ -97,20 +150,14 @@ local function CreateArrow(parent)
   local frame = CreateFrame("Frame", nil, parent)
   -- Nameplates fade with range; the arrow should stay visible.
   if frame.SetIgnoreParentAlpha then frame:SetIgnoreParentAlpha(true) end
-  frame.Texture = frame:CreateTexture(nil, "OVERLAY")
-  frame.Texture:SetAllPoints(frame)
-  frame.Texture:SetBlendMode("BLEND")   -- not ADD: that mixes in the ground, so the colour changed with the background
+  frame.View = GH.CreateShapeView(frame, "OVERLAY")   -- BLEND, not ADD: ADD mixed in the ground's colour
   return frame
 end
 
--- The member's texture and size; gives back how high the shape sits above its anchor.
+-- The member's shape and size; gives back how high the shape sits above its anchor.
 local function ApplyLook(frame, unit)
   local name = GH.GetMemberName(unit)
-  local path = GH.GetStyleTexture(name)
-  if frame.TexturePath ~= path then
-    frame.TexturePath = path
-    frame.Texture:SetTexture(path)
-  end
+  frame.View.SetLook(GH.GetShownLook(name))
   local size, lift = GH.GetMemberSize(name)
   frame:SetSize(size, size)
   return lift
@@ -146,7 +193,7 @@ local function UpdatePlate(plate, unit)
     arrow:SetPoint("BOTTOM", plate, "CENTER", 0, lift)
     local colored, r, g, b = pcall(GetColor, unit)
     if not colored then r, g, b = DEFAULT_COLOR[1], DEFAULT_COLOR[2], DEFAULT_COLOR[3] end
-    arrow.Texture:SetVertexColor(r, g, b)
+    arrow.View.SetColor(r, g, b)
   else
     ReleaseArrow(plate)
   end
@@ -166,7 +213,7 @@ local function UpdateSelfArrow()
   selfArrow:ClearAllPoints()
   selfArrow:SetPoint("BOTTOM", UIParent, "CENTER", 0,
     SELF_BASE_HEIGHT / math.max(zoom, 2) / 2 + lift - 20)
-  selfArrow.Texture:SetVertexColor(GetColor("player"))
+  selfArrow.View.SetColor(GetColor("player"))
   selfArrow:Show()
 end
 
