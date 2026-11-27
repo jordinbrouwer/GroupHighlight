@@ -1,7 +1,9 @@
 # Changelog
 Written by the release pipeline from the commits; see `CONTRIBUTING.md`.
 
-## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.3.1...master)
+## [Unreleased](https://github.com/jordinbrouwer/GroupHighlight/compare/1.4.0...master)
+
+## [1.4.0 (2026-11-27)](https://github.com/jordinbrouwer/GroupHighlight/releases/tag/1.4.0)
 
 ### Added
 - New arrow shapes: a diamond, a circle, a star, a map pin, a shield, a sword and a plus. The diamond, the circle, the star, the shield, the sword and the plus can be filled or drawn as an outline (an outline circle is a ring); the pin is solid or has a round hole.
